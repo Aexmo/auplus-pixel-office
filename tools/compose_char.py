@@ -33,7 +33,7 @@ def compose_frame(body, state, f, head_img, rig=None):
         return None
     bodyimg = Image.open(rig_path).convert('RGBA')
     # 头宽 = 蛋头宽 ×1.28 (更大以完全覆盖)
-    hw = int(anc['w'] * 1.28)
+    hw = int(anc['w'] * 1.22)
     hh = int(head_img.height * hw / head_img.width)
     head2 = head_img.resize((hw, hh), Image.NEAREST)
     pad = max(0, hh - anc['cy'] + 24)
@@ -44,7 +44,7 @@ def compose_frame(body, state, f, head_img, rig=None):
     acx, acy = bx + anc['cx'], by + anc['cy']
     hx = acx - hw // 2
     # 头底沉到蛋头中心下方 55% 处 → 下巴压到脖子/肩，蛋头彻底被盖
-    hy = int(acy + anc['h'] * 0.30) - hh
+    hy = int(acy + anc['h'] * 0.62) - hh
     cv.alpha_composite(head2, (hx, hy))
     bb = cv.getbbox()
     return cv.crop(bb) if bb else cv

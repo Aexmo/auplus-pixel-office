@@ -508,11 +508,11 @@ STATE_TO_EXPR = {
     'angry': 'angry', 'sad': 'sad', 'eating': 'happy', 'sleepy': 'sleepy', 'sleeping': 'sleepy',
 }
 EXPR_DESC = {
-    'normal':  'calm neutral friendly face, eyes open, relaxed',
-    'happy':   'big joyful open smile, cheerful sparkling eyes',
-    'angry':   'angry grumpy frown, furrowed brow, gritted teeth',
-    'sad':     'sad teary droopy eyes, wobbly frown, pitiful',
-    'sleepy':  'very sleepy face, closed or half-closed heavy eyes, tired',
+    'normal':  'quirky goofy neutral face with a slightly derpy off-kilter look, eyes a touch uneven, subtly funny',
+    'happy':   'EXPLOSIVELY joyful face, huge wide-open goofy grin, eyes squeezed into happy arcs or huge sparkly stars, tongue maybe out, over-the-top delighted',
+    'angry':   'COMICALLY furious face, giant angry cartoon frown, one eye twitching, veins/steam, teeth bared in a ridiculous rage, over-the-top mad',
+    'sad':     'MELODRAMATICALLY sad face, enormous teary waterfall eyes, super wobbly exaggerated frown, absurdly pitiful crybaby look',
+    'sleepy':  'ULTRA sleepy derpy face, eyes rolled half-shut and crossed, huge yawn or drool, big snot bubble, hilariously out of it',
 }
 # 表情人格池(个性层): 不指定则随机抽 → 同种动物也各不相同
 PERSONALITY_POOL = [
@@ -535,19 +535,19 @@ def _egg_is(px):
 
 
 def _compose_head_body(rig_path, anchor, head_img):
-    """去头身体 + 动物头 → 完整帧(头比蛋头大1.28,下压盖到肩)"""
+    """去头身体 + 动物头 → 完整帧(头×1.22,下巴压到肩,连接身体不留颈部空隙)"""
     from PIL import Image as _Img
     body = _Img.open(rig_path).convert("RGBA")
-    hw = int(anchor['w'] * 1.28)
+    hw = int(anchor['w'] * 1.22)
     hh = int(head_img.height * hw / head_img.width)
     head2 = head_img.resize((hw, hh), _Img.NEAREST)
-    pad = max(0, hh - anchor['cy'] + 24)
+    pad = max(0, hh)
     cv = _Img.new("RGBA", (max(body.width, hw) + 30, body.height + pad), (0, 0, 0, 0))
     bx = (cv.width - body.width) // 2
     cv.alpha_composite(body, (bx, pad))
     acx, acy = bx + anchor['cx'], pad + anchor['cy']
     hx = acx - hw // 2
-    hy = int(acy + anchor['h'] * 0.30) - hh
+    hy = int(acy + anchor['h'] * 0.62) - hh   # 下巴沉到肩，头身连接
     cv.alpha_composite(head2, (hx, hy))
     bb = cv.getbbox()
     return cv.crop(bb) if bb else cv

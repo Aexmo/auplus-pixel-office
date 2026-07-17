@@ -58,15 +58,25 @@ def process(body, state, f):
     xs = [p[0] for p in blob]; ys = [p[1] for p in blob]
     x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
     anchor = {'cx': (x0+x1)//2, 'cy': (y0+y1)//2, 'w': x1-x0, 'h': y1-y0}
-    # 擦除蛋头(含向下微扩，去掉脖子残留)
+    # 擦除蛋头 + 膨胀5px(连描边/抗锯齿一起擦净，避免头压低后露出蛋头描边弧线)
     px = im.load()
+    R = 5
     eggset = set(blob)
+    erase = set()
     for x, y in blob:
+        for dx in range(-R, R + 1):
+            for dy in range(-R, R + 1):
+                if dx * dx + dy * dy <= R * R:
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < im.width and 0 <= ny < im.height:
+                        erase.add((nx, ny))
+    for x, y in erase:
         px[x, y] = (0, 0, 0, 0)
-    # 蛋头下沿再向下清 6px 宽度内的浅色(脖子)
-    for x in range(x0, x1+1):
-        for y in range(y1, min(im.height, y1+8)):
-            if is_egg(px[x, y]):
+    # 蛋头下沿再向下清 10px 内浅色(脖子残留)
+    for x in range(max(0, x0 - 3), min(im.width, x1 + 4)):
+        for y in range(y1, min(im.height, y1 + 12)):
+            r, g, b, a = px[x, y]
+            if a > 0 and (r + g + b) / 3 > 150 and b >= r - 20 and abs(r - g) < 45:
                 px[x, y] = (0, 0, 0, 0)
     out = f'{CHARDIR}/rig_{body}_{state}_{f}.png'
     im.save(out)

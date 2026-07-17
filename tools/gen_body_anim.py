@@ -15,17 +15,17 @@ os.makedirs(OUT, exist_ok=True)
 
 BODY = sys.argv[1] if len(sys.argv) > 1 else 'body_m'
 
-# 纯身体语言(无表情，脸在头上)
+# 纯身体语言(无表情，脸在头上) —— 夸张无厘头版: 幅度大、姿势怪、搞笑
 STATES = [
-    ('idle',     'standing relaxed, little stubby arms resting at sides'),
-    ('busy',     'leaning forward slightly, both little arms in front as if busily working'),
-    ('angry',    'standing tense, both little fists clenched down, stomping angry stance'),
-    ('happy',    'both little arms raised up high cheering, hopping up joyfully off the ground'),
-    ('sad',      'shoulders slumped, both little arms drooping down limply, dejected posture'),
-    ('eating',   'one little hand raised up toward the head as if bringing food up, other arm at side'),
-    ('playing',  'dynamic playful pose, little arms spread out wide, one leg lifted'),
-    ('sleepy',   'body swaying tiredly, one little hand raised up rubbing near the head'),
-    ('sleeping', 'sitting curled down small on the ground, resting peacefully'),
+    ('idle',     'standing but wobbling and swaying goofily side to side, little arms swinging loosely, silly relaxed vibe'),
+    ('busy',     'FRANTICALLY typing at insane speed, both little arms a blurry flurry, leaning way in super hectic and comical'),
+    ('angry',    'THROWING A TANTRUM: jumping off the ground in a rage, both fists flailing wildly in the air, legs kicking, over-the-top furious'),
+    ('happy',    'LEAPING super high into the air, both little arms thrown up wildly, legs kicking out, ecstatic explosive joy'),
+    ('sad',      'DRAMATICALLY collapsed forward in despair, both arms dangling limp all the way to the floor, over-the-top melodramatic gloom'),
+    ('eating',   'STUFFING food into the mouth with both hands frantically, arms shoveling, belly out, comically gluttonous'),
+    ('playing',  'doing a WILD silly dance, arms and legs flailing in totally different crazy directions, goofy party pose'),
+    ('sleepy',   'nodding off DRAMATICALLY, whole body tilting and about to topple over, one arm flopping loose, wobbly'),
+    ('sleeping', 'FLOPPED over completely sprawled out limp on the ground, tiny snore bubble, comically knocked out'),
 ]
 
 def keyed(im):
@@ -71,9 +71,10 @@ for state, desc in STATES:
             ref = base_ref
         else:
             prompt = ("Reference image: animation frame 1 of THIS EXACT body. " + KEEP +
-                "Create animation frame 2 of a 2-frame loop: same posture and framing, change ONLY "
-                "subtle motion (limbs/body slightly shifted) for a smooth loop. Pixel art, centered, "
-                "entire background solid pure magenta (#FF00FF), no text.")
+                "Create animation frame 2 of a 2-frame loop: keep the same character and outfit but make a "
+                "BIG exaggerated motion change (limbs swung to opposite side, body bounced/twisted noticeably, "
+                "a lively wacky jitter) so the 2-frame loop looks energetic and funny, NOT subtle. Pixel art, "
+                "centered, entire background solid pure magenta (#FF00FF), no text.")
             ref = frame1_b64
         raw = None
         for attempt in range(3):
