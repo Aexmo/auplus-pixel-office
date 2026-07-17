@@ -3449,7 +3449,8 @@ function toggleBrokerPanel() {
 
                 const statusText = statusMap[authStatus] || authStatus;
                 const stateText = stateMap[state] || state;
-                const subtitle = `${statusText} · ${stateText}`;
+                const detailText = (agent.detail && String(agent.detail).trim()) ? String(agent.detail).trim() : '';
+                const subtitle = detailText ? `${statusText} · ${stateText} · ${detailText}` : `${statusText} · ${stateText}`;
 
                 const pendingActions = `<button onclick="alert('交换 skill 功能开发中')">交换skill</button><button class="leave-btn" onclick="leaveGuestAgent('${agent.agentId}','${name}')">离开房间</button>`;
 
@@ -3693,9 +3694,11 @@ function toggleBrokerPanel() {
                 syncing: ['同步中，马上更新状态', '正在同步进度到系统', '数据同步中请稍候'],
                 error: ['我在 bug 区排查问题', '检测到异常，正在修复', '报警中，先定位再处理']
             };
-            const agentState = (guestAgents.find(a => a.agentId === id) || {}).state || 'idle';
+            const agentObj = guestAgents.find(a => a.agentId === id) || {};
+            const agentState = agentObj.state || 'idle';
             const thoughts = statusThoughtsMap[agentState] || statusThoughtsMap.idle;
-            const text = (demoVisitor && demoVisitor.bubbleText) ? demoVisitor.bubbleText : thoughts[Math.floor(Math.random() * thoughts.length)];
+            const realDetail = (agentObj.detail && String(agentObj.detail).trim()) ? String(agentObj.detail).trim() : '';
+            const text = (demoVisitor && demoVisitor.bubbleText) ? demoVisitor.bubbleText : (realDetail || thoughts[Math.floor(Math.random() * thoughts.length)]);
 
             if (guestBubbles[id]) {
                 guestBubbles[id].destroy();
@@ -4678,6 +4681,7 @@ function toggleBrokerPanel() {
                         // If we're mid-transition, don't restart the path every poll
                         const changed = (pendingDesiredState === null) && (nextState !== currentState);
                         const nextLine = '[' + stateInfo.name + '] ' + (data.detail || '...');
+                        window.currentDetail = (data.detail || '').trim();
                         // 不论 changed 与否，都按服务端最新状态强制一次视觉同步，避免动画卡旧状态
                         pendingDesiredState = null;
                         if (currentState !== nextState) {
@@ -4850,7 +4854,8 @@ function toggleBrokerPanel() {
                 anchorY = window.starWorking.y;
             }
 
-            const text = texts[Math.floor(Math.random() * texts.length)];
+            let text = (window.currentDetail && window.currentDetail.length) ? window.currentDetail : texts[Math.floor(Math.random() * texts.length)];
+            if (text.length > 22) text = text.slice(0, 22) + '…';
             const bubbleOffsetY = (currentState === 'writing') ? 85 : 70;
             const bubbleY = anchorY - bubbleOffsetY;
 
