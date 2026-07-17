@@ -41,17 +41,8 @@ def compose_frame(body, state, f, head_img, rig=None):
     by = pad
     cv.alpha_composite(bodyimg, (bx, by))
     acx = bx + anc['cx']
-    # 检测去头身体在锚点x附近的最高不透明行(=领口/肩顶)，让头下巴重叠进去→必连接
-    bpx = bodyimg.load(); bw, bh = bodyimg.size
-    xL = max(0, anc['cx'] - anc['w'] // 3); xR = min(bw, anc['cx'] + anc['w'] // 3)
-    collar_top = None
-    for yy in range(bh):
-        if any(bpx[xx, yy][3] > 60 for xx in range(xL, xR)):
-            collar_top = yy; break
-    if collar_top is None:
-        collar_top = anc['cy'] + anc['h'] // 2
-    overlap = max(16, int(hh * 0.16))   # 头底沉入领口的重叠量
-    hy = (by + collar_top + overlap) - hh
+    egg_bottom = anc['cy'] + anc['h'] // 2   # 蛋头锚点定位(蛋头永在肩上)
+    hy = (by + egg_bottom + int(anc['h'] * 0.10)) - hh
     cv.alpha_composite(head2, (acx - hw // 2, hy))
     bb = cv.getbbox()
     return cv.crop(bb) if bb else cv

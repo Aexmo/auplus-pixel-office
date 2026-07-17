@@ -536,7 +536,8 @@ def _egg_is(px):
 
 def _compose_head_body(rig_path, anchor, head_img):
     """去头身体 + 动物头 → 完整帧
-    检测去头身体在锚点x附近的领口/肩顶，让头下巴重叠进去 → 任何姿势都头身连接，无空隙。
+    用蛋头锚点定位: 蛋头在模板里永远坐在肩膀上，头底沉到蛋头底+微重叠 → 任何夸张姿势
+    (暴跳/腾空/瘫倒/蜷缩)都头身连接不分离。比领口检测稳(领口检测会把举起的手误判成肩)。
     """
     from PIL import Image as _Img
     body = _Img.open(rig_path).convert("RGBA")
@@ -548,19 +549,8 @@ def _compose_head_body(rig_path, anchor, head_img):
     bx = (cv.width - body.width) // 2
     cv.alpha_composite(body, (bx, pad))
     acx = bx + anchor['cx']
-    # 领口检测: 锚点x附近去头身体的最高不透明行 = 肩顶
-    bpx = body.load(); bw, bh = body.size
-    xL = max(0, anchor['cx'] - anchor['w'] // 3)
-    xR = min(bw, anchor['cx'] + anchor['w'] // 3)
-    collar_top = None
-    for yy in range(bh):
-        if any(bpx[xx, yy][3] > 60 for xx in range(xL, xR)):
-            collar_top = yy
-            break
-    if collar_top is None:
-        collar_top = anchor['cy'] + anchor['h'] // 2
-    overlap = max(16, int(hh * 0.16))
-    hy = (pad + collar_top + overlap) - hh
+    egg_bottom = anchor['cy'] + anchor['h'] // 2
+    hy = (pad + egg_bottom + int(anchor['h'] * 0.10)) - hh   # 头底=蛋头底+10%重叠进肩
     cv.alpha_composite(head2, (acx - hw // 2, hy))
     bb = cv.getbbox()
     return cv.crop(bb) if bb else cv
@@ -639,7 +629,7 @@ def _char_worker(job_id, char_id, name, prompt_word, gender, personality, mode, 
             if h is None:
                 raise RuntimeError(f"表情 {st} 抠底为空")
             heads[st] = h
-            hp = os.path.join(char_dir, f"tmp_{char_id}_{st}.png")
+            hp = os.path.join(char_dir, f"head_{char_id}_{st}.png")   # 永久保存头(供重合成)
             h.save(hp)
             if base_head_path is None:
                 base_head_path = hp   # 首个头做后续一致性参照
@@ -665,11 +655,7 @@ def _char_worker(job_id, char_id, name, prompt_word, gender, personality, mode, 
                 frames.append(fn)
             if frames:
                 states[st] = frames
-        # 清理临时头
-        for st in gen_states:
-            tp = os.path.join(char_dir, f"tmp_{char_id}_{st}.png")
-            if os.path.exists(tp):
-                os.remove(tp)
+        head_map = {st: f"head_{char_id}_{st}.png" for st in gen_states}   # 保留头供重合成
 
         chars = []
         if os.path.exists(CHARACTERS_FILE):
@@ -679,7 +665,7 @@ def _char_worker(job_id, char_id, name, prompt_word, gender, personality, mode, 
                 chars = []
         chars.append({"id": char_id, "name": name, "prompt": prompt_word, "gender": gender,
                       "personality": pname, "mode": mode, "meme": meme_ref or "",
-                      "states": states, "ts": datetime.now().isoformat()})
+                      "states": states, "heads": head_map, "ts": datetime.now().isoformat()})
         with open(CHARACTERS_FILE, "w", encoding="utf-8") as f:
             json.dump(chars, f, ensure_ascii=False, indent=1)
         with _char_lock:
@@ -729,6 +715,44 @@ def characters_generate():
 @app.route("/characters/personalities", methods=["GET"])
 def characters_personalities():
     return jsonify([n for n, _ in PERSONALITY_POOL])
+
+
+@app.route("/characters/recompose", methods=["POST"])
+def characters_recompose():
+    """用当前合成公式重合成所有(有保存头的)角色帧 —— 调公式后一键修复，无需重生成头"""
+    from PIL import Image as _Img
+    try:
+        char_dir = os.path.join(str(FRONTEND_PATH), "characters")
+        rig = json.load(open(BODY_RIG_FILE, encoding="utf-8")) if os.path.exists(BODY_RIG_FILE) else {}
+        chars = json.load(open(CHARACTERS_FILE, encoding="utf-8")) if os.path.exists(CHARACTERS_FILE) else []
+        fixed = 0
+        for c in chars:
+            hmap = c.get("heads") or {}
+            if not hmap:
+                continue
+            body = "body_f" if c.get("gender") == "female" else "body_m"
+            if body not in rig:
+                continue
+            for st in CHAR_STATE_LIST:
+                hfile = hmap.get(st) or hmap.get("idle") or next(iter(hmap.values()))
+                hp = os.path.join(char_dir, hfile)
+                if not os.path.exists(hp):
+                    continue
+                head = _Img.open(hp).convert("RGBA")
+                for f in (0, 1):
+                    anc = rig[body].get(st, {}).get(str(f)) or rig[body].get(st, {}).get('0')
+                    rig_path = os.path.join(char_dir, f"rig_{body}_{st}_{f}.png")
+                    if not os.path.exists(rig_path):
+                        rig_path = os.path.join(char_dir, f"rig_{body}_{st}_0.png")
+                    if not anc or not os.path.exists(rig_path):
+                        continue
+                    comp = _compose_head_body(rig_path, anc, head)
+                    comp = comp.resize((max(1, round(comp.width * 190 / comp.height)), 190), _Img.NEAREST)
+                    comp.save(os.path.join(char_dir, f"char_{c['id']}_{st}_{f}.png"))
+            fixed += 1
+        return jsonify({"ok": True, "recomposed": fixed})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 500
 
 
 # ================== 整容室经济: 积分 + 整容液 ==================
@@ -805,6 +829,10 @@ def characters_delete(cid):
                 fp = os.path.join(char_dir, fn)
                 if os.path.exists(fp):
                     os.remove(fp)
+        for hfn in (target.get("heads") or {}).values():   # 清理保存的头文件
+            hp = os.path.join(char_dir, hfn)
+            if os.path.exists(hp):
+                os.remove(hp)
         chars = [c for c in chars if c.get("id") != cid]
         with open(CHARACTERS_FILE, "w", encoding="utf-8") as f:
             json.dump(chars, f, ensure_ascii=False, indent=1)

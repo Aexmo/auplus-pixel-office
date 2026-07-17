@@ -1325,6 +1325,7 @@
                 <button onclick="buyPotion()" style="flex:1; padding:6px; font-family:ArkPixel,monospace; font-size:11px; cursor:pointer; border:1px solid #92742b; border-radius:5px; background:#3a2f10; color:#fbbf24;">🧪 买整容液(100🪙)</button>
                 <button onclick="devEarn()" title="测试用:加积分" style="padding:6px 8px; font-family:ArkPixel,monospace; font-size:11px; cursor:pointer; border:1px solid #475569; border-radius:5px; background:#1f2937; color:#93c5fd;">+100🪙</button>
             </div>
+            <button onclick="recomposeChars()" title="调整头身连接公式后,一键重合成所有角色" style="width:100%; margin-top:6px; padding:6px; font-family:ArkPixel,monospace; font-size:11px; cursor:pointer; border:1px solid #475569; border-radius:5px; background:#1f2937; color:#a7f3d0;">🔧 修复所有角色头身连接</button>
         </div>
     </div>
     <div id="creator-panel" style="display:none; position:fixed; top:calc(env(safe-area-inset-top, 0px) + 96px); right:12px; width:236px; max-height:72vh; overflow-y:auto; z-index:999998; background:rgba(20,20,28,0.96); border:2px solid #3a3a4a; border-radius:8px; padding:10px; font-family:ArkPixel,monospace; color:#e5e7eb;">
@@ -5337,6 +5338,25 @@ function toggleBrokerPanel() {
                     headers: { 'Content-Type': 'application/json' }, body: '{"amount":100}' }).then(x => x.json());
                 window.economy = r; loadEconomy();
             } catch (e) {}
+        }
+        async function recomposeChars() {
+            const st = document.getElementById('dressing-status');
+            st.textContent = '🔧 重合成中…';
+            try {
+                const r = await fetch('/characters/recompose', { method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(x => x.json());
+                if (!r.ok) { st.textContent = '❌ ' + r.msg; return; }
+                // 清缓存纹理强制重载
+                (window.actorDefs || []).forEach(def => {
+                    Object.keys(def.states || {}).forEach(s2 => {
+                        (Array.isArray(def.states[s2]) ? def.states[s2] : [def.states[s2]]).forEach((fn, i) => {
+                            const k = actorTexKey(def.id, s2, i);
+                            if (game.textures.exists(k)) game.textures.remove(k);
+                        });
+                    });
+                });
+                st.textContent = '✅ 已修复 ' + r.recomposed + ' 个角色，刷新页面看效果';
+            } catch (e) { st.textContent = '❌ ' + e; }
         }
         async function dressingGenerate() {
             const st = document.getElementById('dressing-status');
