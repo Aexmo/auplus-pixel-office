@@ -3613,17 +3613,32 @@ function toggleBrokerPanel() {
             { x: 620, y: 430 }, { x: 1380, y: 430 }
         ];
         window.agentSeats = {};   // agentName -> 座位index（稳定，随存档持久化）
+        // 工位绑定的真实桌子精灵id(跟着桌子移动;坐桌后由桌子盖住下半身=坐着打字)
+        const DESK_SEAT_IDS = ['desk_star', 'desk_dev_2', 'desk_dev_3', 'desk_dev_4', 'desk_dev_5', 'desk_dev_6'];
+        const DESK_SIT_DY = 58;   // 脚点相对桌心上移(坐桌后,身子在显示器上方露出)
+        const DESK_SIT_DX = -46;  // 横向偏移到显示器旁,避免被显示器整个挡住
+        function deskSeatPos(deskId, fallback) {
+            const di = window.editorItems && window.editorItems[deskId];
+            if (di && di.spr && di.spr.active) {
+                return { x: Math.round(di.spr.x + DESK_SIT_DX), y: Math.round(di.spr.y - DESK_SIT_DY),
+                         deskId, deskDepth: di.spr.depth, atDesk: true };
+            }
+            return fallback;
+        }
         function assignWorkstation(agent) {
             const nm = agent.name || agent.agentId || '';
-            if (/YIMU/i.test(nm)) return { x: 224, y: 250, boss: true };
+            if (/YIMU/i.test(nm)) {
+                return deskSeatPos('desk_boss', { x: 224, y: 250, boss: true });
+            }
             if (window.agentSeats[nm] === undefined) {
                 const used = new Set(Object.values(window.agentSeats));
                 let s = 0;
-                while (used.has(s) && s < WORKSTATION_SEATS.length) s++;
-                window.agentSeats[nm] = s % WORKSTATION_SEATS.length;
+                while (used.has(s) && s < DESK_SEAT_IDS.length) s++;
+                window.agentSeats[nm] = s % DESK_SEAT_IDS.length;
                 queueEditorSave && queueEditorSave();
             }
-            return WORKSTATION_SEATS[window.agentSeats[nm]];
+            const idx = window.agentSeats[nm];
+            return deskSeatPos(DESK_SEAT_IDS[idx], WORKSTATION_SEATS[idx % WORKSTATION_SEATS.length]);
         }
         function renderGuestAgentsInScene() {
             if (!game) return;
@@ -3693,6 +3708,7 @@ function toggleBrokerPanel() {
                             }
                         }
                     }
+                    // 坐桌后: 深度低于桌子(桌子+显示器盖住下半身=坐着打字);否则站立在最上层
                     sprite.setDepth(2600);
                     if (DEMO_MODE && (agent.agentId === 'demo_mercury' || agent.name === '水星')) {
                         sprite.y = sprite.y + 10;
@@ -3747,8 +3763,10 @@ function toggleBrokerPanel() {
                     } else {
                         g.sprite.x = p.x;
                         g.sprite.y = p.y + yOffset;
+                        g.sprite.setDepth(2600);
                         g.nameText.x = p.x;
                         g.nameText.y = (p.y + yOffset) - 120;
+                        g.nameText.setDepth(2601);
                     }
 
                     g.nameText.setText(agent.name || '访客');
