@@ -4206,6 +4206,36 @@ function toggleBrokerPanel() {
             if (window.editorMode) enableItemInput(scene, window.editorItems[id]);
             return window.editorItems[id];
         }
+        // 物品拖动对齐辅助：与其他物品 中心X/中心Y/底边 相近(10px)时自动吸附并画辅助线
+        function itemAlignAssist(obj) {
+            const THR = 10;
+            let bx = null, by = null;
+            const myH = (obj.displayHeight || obj.height || 0);
+            const myBottom = obj.y + myH / 2;
+            Object.values(window.editorItems).forEach(it2 => {
+                const o = it2.spr;
+                if (o === obj || !o.active || !o.visible) return;
+                const dx = Math.abs(o.x - obj.x);
+                if (dx <= THR && (!bx || dx < bx.d)) bx = { d: dx, v: o.x, type: 'cx' };
+                const dyC = Math.abs(o.y - obj.y);
+                if (dyC <= THR && (!by || dyC < by.d)) by = { d: dyC, v: o.y, type: 'cy' };
+                const oBottom = o.y + (o.displayHeight || o.height || 0) / 2;
+                const dyB = Math.abs(oBottom - myBottom);
+                if (dyB <= THR && (!by || dyB < by.d)) by = { d: dyB, v: oBottom, type: 'bottom' };
+            });
+            const g = window.roomPreviewGfx;
+            if (g) g.clear();
+            if (bx) {
+                obj.x = bx.v;
+                if (g) g.lineStyle(1, 0x22d3ee, 0.9).lineBetween(bx.v, 0, bx.v, 1000);
+            }
+            if (by) {
+                if (by.type === 'bottom') obj.y = Math.round(by.v - myH / 2);
+                else obj.y = by.v;
+                const ly = by.type === 'bottom' ? by.v : by.v;
+                if (g) g.lineStyle(1, 0x22d3ee, 0.9).lineBetween(0, ly, 1600, ly);
+            }
+        }
         function editorSetItemVisible(it, vis) {
             it.spr.setVisible(vis);
             (it.linked || []).forEach(l => l.spr.setVisible(vis));
@@ -5803,6 +5833,7 @@ function toggleBrokerPanel() {
                 if (!obj.__editorId) return;
                 obj.x = Math.round(dragX);
                 obj.y = Math.round(dragY);
+                itemAlignAssist(obj);
                 const it = window.editorItems[obj.__editorId];
                 if (it) editorApplyItemPosition(it);
                 editorSelBoxDraw();
@@ -5810,7 +5841,8 @@ function toggleBrokerPanel() {
             });
             this.input.on('dragend', (pointer, obj) => {
                 window.__editorDragging = false;
-                if (obj && obj.__room) finishRoomDrag();
+                if (obj && obj.__room) { finishRoomDrag(); return; }
+                if (window.roomPreviewGfx) window.roomPreviewGfx.clear();
             });
             this.input.on('pointerdown', (pointer, currentlyOver) => {
                 if (window.editorMode && (!currentlyOver || currentlyOver.length === 0)) {
