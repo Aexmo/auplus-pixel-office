@@ -631,6 +631,30 @@ def characters_job(jid):
         return jsonify(_char_jobs.get(jid) or {"status": "unknown"})
 
 
+@app.route("/characters/<cid>", methods=["DELETE"])
+def characters_delete(cid):
+    """删除角色(含全部帧文件);密码由前端确认"""
+    try:
+        chars = []
+        if os.path.exists(CHARACTERS_FILE):
+            chars = json.load(open(CHARACTERS_FILE, encoding="utf-8"))
+        target = next((c for c in chars if c.get("id") == cid), None)
+        if not target:
+            return jsonify({"ok": False, "msg": "角色不存在"}), 404
+        char_dir = os.path.join(str(FRONTEND_PATH), "characters")
+        for v in (target.get("states") or {}).values():
+            for fn in (v if isinstance(v, list) else [v]):
+                fp = os.path.join(char_dir, fn)
+                if os.path.exists(fp):
+                    os.remove(fp)
+        chars = [c for c in chars if c.get("id") != cid]
+        with open(CHARACTERS_FILE, "w", encoding="utf-8") as f:
+            json.dump(chars, f, ensure_ascii=False, indent=1)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 500
+
+
 @app.route("/characters/list", methods=["GET"])
 def characters_list():
     try:

@@ -5230,7 +5230,18 @@ function toggleBrokerPanel() {
                 add.textContent = '🚶 放入';
                 add.style.cssText = 'padding:3px 8px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid #16a34a;border-radius:4px;background:#14532d;color:#bbf7d0;';
                 add.onclick = () => dressingAddToScene(def.id);
-                row.appendChild(pv); row.appendChild(add);
+                const del = document.createElement('button');
+                del.textContent = '🗑';
+                del.title = '删除角色(需密码)';
+                del.style.cssText = 'padding:3px 7px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid #7f1d1d;border-radius:4px;background:#450a0a;color:#fca5a5;';
+                del.onclick = async () => {
+                    const pwd = prompt('删除角色「' + def.name + '」需输入密码：');
+                    if (pwd === null) return;
+                    if (pwd !== '3123119') { alert('密码错误，未删除'); return; }
+                    await fetch('/characters/' + def.id, { method: 'DELETE' }).catch(() => {});
+                    loadCharacters();
+                };
+                row.appendChild(pv); row.appendChild(add); row.appendChild(del);
                 c.appendChild(row);
             });
             if (!window.actorDefs.length) c.innerHTML = '<div style="font-size:11px;color:#64748b;">还没有角色，输入提示词生成第一个吧</div>';
