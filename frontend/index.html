@@ -3563,7 +3563,7 @@ function toggleBrokerPanel() {
                         const animIdleKey = `guest_anim_${animIdx}_idle`;
 
                         if (game.textures.exists(animKey) && game.anims.exists(animIdleKey)) {
-                            sprite = game.add.sprite(p.x, p.y, animKey).setOrigin(0.5, 1).setScale(4.0);
+                            sprite = game.add.sprite(p.x, p.y, animKey).setOrigin(0.5, 1).setScale(2.5);
                             sprite.anims.play(animIdleKey, true);
                         } else {
                             const staticAvatarKey = agent.avatar && game.textures.exists(agent.avatar)
@@ -4046,6 +4046,22 @@ function toggleBrokerPanel() {
                 g.fillStyle(0xffffff, 0.10); g.fillRect(r.x, r.y + 22, r.w, 3);
                 // 房间外墙边框（厚墙）
                 g.lineStyle(6, r.wall, 1); g.strokeRect(r.x, r.y, r.w, r.h);
+                // 窗户（嵌在顶部墙带）
+                [0.30, 0.64].forEach(fx => {
+                    const wx = r.x + r.w * fx, wy = r.y + 3;
+                    g.fillStyle(0x8fc7ec, 1); g.fillRect(wx, wy, 56, 16);
+                    g.lineStyle(2, 0xe4f1fc, 1); g.strokeRect(wx, wy, 56, 16);
+                    g.lineBetween(wx + 28, wy, wx + 28, wy + 16);
+                });
+                // 门（底墙中央门槛 + 门口暖光）
+                const dcx = r.x + r.w * 0.5;
+                g.fillStyle(0x7a5a3a, 1); g.fillRect(dcx - 24, r.y + r.h - 8, 48, 8);
+                g.fillStyle(0xffd27a, 0.16); g.fillRect(dcx - 26, r.y + r.h - 34, 52, 26);
+                // 吸顶灯 + 光晕
+                const lcx = r.x + r.w * 0.5, lcy = r.y + 46;
+                g.fillStyle(0xfff2c2, 0.13); g.fillCircle(lcx, lcy, 44);
+                g.fillStyle(0xffe9a0, 1); g.fillRect(lcx - 15, lcy - 5, 30, 8);
+                g.lineStyle(2, 0x9a8a5a, 1); g.strokeRect(lcx - 15, lcy - 5, 30, 8);
             });
             // 地毯：老板桌 & 沙发下
             g.fillStyle(0x8a6bb0, 0.30); g.fillRect(150, 250, 160, 120);   // 老板办公室地毯
@@ -4233,7 +4249,7 @@ function toggleBrokerPanel() {
                 frameRate: 6,
                 repeat: -1
             });
-            serverroom = this.add.sprite(1340, 848, 'serverroom', 0).setOrigin(0.5);
+            serverroom = this.add.sprite(1340, 838, 'serverroom', 0).setOrigin(0.5).setScale(0.5);
             serverroom.setDepth(2);
             // 默认 idle: 静止第0帧
             serverroom.anims.stop();
