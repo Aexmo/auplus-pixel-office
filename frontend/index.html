@@ -1285,6 +1285,20 @@
     <button id="creator-toggle" style="position:fixed; top:calc(env(safe-area-inset-top, 0px) + 54px); right:12px; z-index:999999; padding:8px 10px; font-family:ArkPixel,monospace; font-size:13px; cursor:pointer; border:2px solid #333; border-radius:5px; background:#333; color:#fff;">
         🛠 造物主
     </button>
+    <button id="dressing-toggle" style="position:fixed; top:calc(env(safe-area-inset-top, 0px) + 96px); right:12px; z-index:999999; padding:8px 10px; font-family:ArkPixel,monospace; font-size:13px; cursor:pointer; border:2px solid #333; border-radius:5px; background:#333; color:#fff;">
+        👗 换衣间
+    </button>
+    <div id="dressing-panel" style="display:none; position:fixed; top:calc(env(safe-area-inset-top, 0px) + 138px); right:12px; width:250px; max-height:66vh; overflow-y:auto; z-index:999998; background:rgba(20,20,28,0.96); border:2px solid #3a3a4a; border-radius:8px; padding:10px; font-family:ArkPixel,monospace; color:#e5e7eb;">
+        <div style="font-size:14px; color:#f9a8d4; margin-bottom:6px;">👗 换衣间 · 角色工坊</div>
+        <div style="font-size:11px; color:#94a3b8; line-height:1.5; margin-bottom:8px;">输入一个词（如：小猫 / 小狗 / 玄凤鹦鹉），自动生成 9 种状态的动画角色套装（约3-4分钟）。</div>
+        <div style="display:flex; gap:6px; margin-bottom:6px;">
+            <input id="dressing-prompt" type="text" placeholder="例如：玄凤鹦鹉" style="flex:1; background:#1f2937; color:#e5e7eb; border:1px solid #475569; border-radius:5px; padding:6px; font-family:ArkPixel,monospace; font-size:12px;">
+            <button id="dressing-go" onclick="dressingGenerate()" style="padding:6px 10px; font-family:ArkPixel,monospace; font-size:12px; cursor:pointer; border:1px solid #be185d; border-radius:5px; background:#500724; color:#f9a8d4;">生成</button>
+        </div>
+        <div id="dressing-status" style="font-size:11px; color:#94a3b8; margin-bottom:8px;"></div>
+        <div style="font-size:12px; color:#cbd5e1; margin-bottom:4px;">角色库</div>
+        <div id="dressing-list"></div>
+    </div>
     <div id="creator-panel" style="display:none; position:fixed; top:calc(env(safe-area-inset-top, 0px) + 96px); right:12px; width:236px; max-height:72vh; overflow-y:auto; z-index:999998; background:rgba(20,20,28,0.96); border:2px solid #3a3a4a; border-radius:8px; padding:10px; font-family:ArkPixel,monospace; color:#e5e7eb;">
         <div style="font-size:14px; color:#4ade80; margin-bottom:6px;">🛠 造物主模式</div>
         <div style="font-size:11px; color:#94a3b8; line-height:1.5; margin-bottom:8px;">
@@ -1296,6 +1310,16 @@
                 <span style="font-size:11px; color:#94a3b8;">大小</span>
                 <input id="creator-sel-scale" type="range" min="0.3" max="4" step="0.05" value="1" style="flex:1;">
                 <span id="creator-sel-scale-val" style="font-size:11px; width:42px;">×1.00</span>
+            </div>
+            <div id="creator-sel-actor-row" style="display:none; margin-top:6px;">
+                <select id="creator-sel-actor-state" style="width:100%; background:#1f2937; color:#e5e7eb; border:1px solid #475569; border-radius:5px; padding:5px; font-family:ArkPixel,monospace; font-size:12px;"
+                    onchange="(function(){ const it = window.editorItems[window.editorSelectedId]; if (it && it.actor) applyActorState(it, document.getElementById('creator-sel-actor-state').value); })()">
+                    <option value="idle">待命</option><option value="busy">忙碌</option>
+                    <option value="angry">发怒</option><option value="happy">高兴</option>
+                    <option value="sad">沮丧</option><option value="eating">吃东西</option>
+                    <option value="playing">玩耍</option><option value="sleepy">犯困</option>
+                    <option value="sleeping">睡觉</option>
+                </select>
             </div>
             <div id="creator-sel-text-row" style="display:none; margin-top:6px;">
                 <input id="creator-sel-text" type="text" placeholder="标牌文字" style="width:100%; box-sizing:border-box; background:#1f2937; color:#f5e6c8; border:1px solid #475569; border-radius:5px; padding:5px 6px; font-family:ArkPixel,monospace; font-size:12px;">
@@ -4294,14 +4318,24 @@ function toggleBrokerPanel() {
                 trow.style.display = it.sign ? 'block' : 'none';
                 if (it.sign) document.getElementById('creator-sel-text').value = it.text || '';
             }
+            const arow = document.getElementById('creator-sel-actor-row');
+            if (arow) {
+                arow.style.display = it.actor ? 'block' : 'none';
+                if (it.actor) document.getElementById('creator-sel-actor-state').value = it.state || 'idle';
+            }
         }
         function buildEditorPayload() {
             const overrides = {}, custom = [];
-            const signs = [];
+            const signs = [], actors = [];
             Object.entries(window.editorItems).forEach(([id, it]) => {
                 const s = it.spr, o = it.orig;
                 if (it.sign) {
                     if (s.active) signs.push({ id, text: it.text, x: s.x, y: s.y, scale: +s.scaleX.toFixed(3) });
+                    return;
+                }
+                if (it.actor) {
+                    if (s.active) actors.push({ id, charId: it.charId, state: it.state,
+                        x: s.x, y: s.y, scale: +(it.baseScale || 1).toFixed(3) });
                     return;
                 }
                 if (it.custom) {
@@ -4323,7 +4357,7 @@ function toggleBrokerPanel() {
                 if (tex && (!r || tex !== r.floor)) roomFloors[rid] = tex;
             });
             const wallFace = (window.wallFaceCur && window.wallFaceCur !== 'wall_face') ? window.wallFaceCur : null;
-            const payload = { overrides, custom, roomFloors, wallFace, signs,
+            const payload = { overrides, custom, roomFloors, wallFace, signs, actors,
                 warehouse: window.editorWarehouse || [],
                 removedWalls: Array.from(window.removedWalls || []),
                 paletteHidden: window.paletteHidden || [],
@@ -4655,6 +4689,8 @@ function toggleBrokerPanel() {
             const signs = Array.isArray(data.signs) ? data.signs
                 : window.mapRooms.map(r => ({ id: 'sign_' + r.id, text: r.name, x: r.x + 96, y: r.y + 40 }));
             signs.forEach(rec => spawnSign(scene, rec));
+            await loadCharacters();
+            for (const rec of (data.actors || [])) await spawnActor(rec);
             renderWarehouseSection();
         }
         function ensureTextureLoaded(key, url) {
@@ -4941,6 +4977,134 @@ function toggleBrokerPanel() {
             if (!on) { window.editorSelectedId = null; editorPanelSyncSel(); }
             if (!on && window.editorSelX) window.editorSelX.setVisible(false);
             editorSelBoxDraw();
+        }
+        // ================== 👗 换衣间 · 角色系统 ==================
+        const ACTOR_STATES = ['idle', 'busy', 'angry', 'happy', 'sad', 'eating', 'playing', 'sleepy', 'sleeping'];
+        const ACTOR_STATE_CN = { idle: '待命', busy: '忙碌', angry: '发怒', happy: '高兴', sad: '沮丧',
+            eating: '吃东西', playing: '玩耍', sleepy: '犯困', sleeping: '睡觉' };
+        const ACTOR_FX = { busy: '💦', angry: '💢', happy: '✨', sad: '💧', eating: '😋',
+            playing: '🎵', sleepy: '💤', sleeping: '💤' };
+        window.actorDefs = [];
+        async function loadCharacters() {
+            try { window.actorDefs = await fetch('/characters/list').then(r => r.json()) || []; } catch (e) {}
+            renderDressingList();
+        }
+        function actorTexKey(charId, state) { return 'char_' + charId + '_' + state; }
+        async function ensureActorTextures(charId) {
+            const def = window.actorDefs.find(c => c.id === charId);
+            if (!def) return false;
+            for (const st of Object.keys(def.states)) {
+                await ensureTextureLoaded(actorTexKey(charId, st), '/static/characters/' + def.states[st]);
+            }
+            return true;
+        }
+        function applyActorState(it, state) {
+            const spr = it.spr;
+            it.state = state;
+            const key = actorTexKey(it.charId, state);
+            if (game.textures.exists(key)) spr.setTexture(key);
+            if (it.tween) { it.tween.stop(); it.tween = null; }
+            if (it.fxTimer) { clearInterval(it.fxTimer); it.fxTimer = null; }
+            spr.setAngle(0); spr.setScale(it.baseScale || 1);
+            const T = game.tweens;
+            if (state === 'idle') it.tween = T.add({ targets: spr, y: '-=4', duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+            else if (state === 'busy') it.tween = T.add({ targets: spr, y: '-=3', duration: 180, yoyo: true, repeat: -1 });
+            else if (state === 'angry') it.tween = T.add({ targets: spr, x: '+=3', duration: 60, yoyo: true, repeat: -1 });
+            else if (state === 'happy') it.tween = T.add({ targets: spr, y: '-=14', duration: 320, yoyo: true, repeat: -1, ease: 'Quad.out' });
+            else if (state === 'sad') it.tween = T.add({ targets: spr, angle: 3, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+            else if (state === 'eating') it.tween = T.add({ targets: spr, scaleX: (it.baseScale || 1) * 1.05, duration: 240, yoyo: true, repeat: -1 });
+            else if (state === 'playing') it.tween = T.add({ targets: spr, angle: 6, duration: 300, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+            else if (state === 'sleepy') it.tween = T.add({ targets: spr, angle: 4, duration: 1800, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+            else if (state === 'sleeping') it.tween = T.add({ targets: spr, scaleY: (it.baseScale || 1) * 1.04, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+            const fx = ACTOR_FX[state];
+            if (fx) it.fxTimer = setInterval(() => {
+                if (!spr.active || !spr.visible) { clearInterval(it.fxTimer); return; }
+                const t2 = game.add.text(spr.x + (Math.random() * 30 - 15), spr.y - spr.displayHeight / 2, fx,
+                    { fontSize: '16px' }).setOrigin(0.5).setDepth(3000);
+                game.tweens.add({ targets: t2, y: t2.y - 34, alpha: 0, duration: 1600,
+                    onComplete: () => t2.destroy() });
+            }, state === 'sleeping' || state === 'sleepy' ? 2200 : 1100);
+            queueEditorSave();
+        }
+        async function spawnActor(rec) {
+            if (!(await ensureActorTextures(rec.charId))) return null;
+            const spr = game.add.image(rec.x, rec.y, actorTexKey(rec.charId, rec.state || 'idle')).setOrigin(0.5);
+            if (rec.scale) spr.setScale(rec.scale);
+            registerEditorItem(game, rec.id, spr, 'floor', true, 'actor');
+            const it = window.editorItems[rec.id];
+            it.actor = true; it.charId = rec.charId; it.baseScale = rec.scale || 1;
+            const def = window.actorDefs.find(c => c.id === rec.charId);
+            it.dispName = '角色·' + ((def && def.name) || rec.charId);
+            spr.setInteractive({ useHandCursor: true });
+            spr.__wasInteractive = true;
+            spr.on('pointerdown', () => {
+                if (window.editorMode) return;
+                const idx = ACTOR_STATES.indexOf(it.state);
+                applyActorState(it, ACTOR_STATES[(idx + 1) % ACTOR_STATES.length]);
+            });
+            applyActorState(it, rec.state || 'idle');
+            return spr;
+        }
+        async function dressingAddToScene(charId) {
+            const cam = game.cameras.main;
+            const rec = { id: 'actor_' + Date.now().toString(36), charId, state: 'idle',
+                x: Math.round(cam.midPoint.x), y: Math.round(cam.midPoint.y), scale: 1 };
+            await spawnActor(rec);
+            if (!window.editorMode) setEditorMode(true);
+            editorSelect(rec.id);
+            queueEditorSave();
+        }
+        function renderDressingList() {
+            const c = document.getElementById('dressing-list');
+            if (!c) return;
+            c.innerHTML = '';
+            (window.actorDefs || []).forEach(def => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;border:1px solid #3a3a4a;border-radius:6px;padding:5px;background:#20202a;';
+                row.innerHTML = '<img src="/static/characters/' + def.states.idle + '" style="width:40px;height:40px;object-fit:contain;image-rendering:pixelated;">'
+                    + '<span style="flex:1;font-size:12px;color:#e5e7eb;">' + def.name + '</span>';
+                const add = document.createElement('button');
+                add.textContent = '🚶 放入';
+                add.style.cssText = 'padding:3px 8px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid #16a34a;border-radius:4px;background:#14532d;color:#bbf7d0;';
+                add.onclick = () => dressingAddToScene(def.id);
+                row.appendChild(add);
+                c.appendChild(row);
+            });
+            if (!window.actorDefs.length) c.innerHTML = '<div style="font-size:11px;color:#64748b;">还没有角色，输入提示词生成第一个吧</div>';
+        }
+        async function dressingGenerate() {
+            const inp = document.getElementById('dressing-prompt');
+            const st = document.getElementById('dressing-status');
+            const btn = document.getElementById('dressing-go');
+            const word = (inp.value || '').trim();
+            if (!word) { st.textContent = '请先输入角色描述'; return; }
+            btn.disabled = true;
+            st.textContent = '🎬 开始生成角色套装…';
+            try {
+                const j = await fetch('/characters/generate', { method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: word }) }).then(r => r.json());
+                if (!j.ok) throw new Error(j.msg || '启动失败');
+                const poll = setInterval(async () => {
+                    const jb = await fetch('/characters/job/' + j.jobId).then(r => r.json()).catch(() => null);
+                    if (!jb) return;
+                    if (jb.status === 'running') {
+                        st.textContent = '🎬 生成中 ' + jb.progress + '/' + jb.total + ' 状态…';
+                    } else if (jb.status === 'done') {
+                        clearInterval(poll);
+                        st.textContent = '✅ 角色套装完成！';
+                        btn.disabled = false;
+                        loadCharacters();
+                    } else if (jb.status === 'error') {
+                        clearInterval(poll);
+                        st.textContent = '❌ ' + (jb.error || '生成失败');
+                        btn.disabled = false;
+                    }
+                }, 3000);
+            } catch (e) {
+                st.textContent = '❌ ' + (e.message || e);
+                btn.disabled = false;
+            }
         }
         // ================== 造物主模式代码结束 ==================
 
@@ -5850,6 +6014,14 @@ function toggleBrokerPanel() {
                     editorSelBoxDraw();
                     editorPanelSyncSel();
                 }
+            });
+            const dressingToggle = document.getElementById('dressing-toggle');
+            if (dressingToggle) dressingToggle.addEventListener('click', () => {
+                const pn = document.getElementById('dressing-panel');
+                const on = pn.style.display === 'none';
+                pn.style.display = on ? 'block' : 'none';
+                dressingToggle.style.background = on ? '#be185d' : '#333';
+                if (on) loadCharacters();
             });
             const creatorToggle = document.getElementById('creator-toggle');
             if (creatorToggle) creatorToggle.addEventListener('click', () => setEditorMode(!window.editorMode));

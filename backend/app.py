@@ -498,6 +498,127 @@ def editor_generated_delete(key):
         return jsonify({"ok": False, "msg": str(e)}), 500
 
 
+# ================== 换衣间 · 角色生成系统 ==================
+CHARACTERS_FILE = os.path.join(ROOT_DIR, "characters.json")
+CHAR_STATES = [
+    ("idle",     "standing relaxed facing the viewer with a gentle content smile"),
+    ("busy",     "busily typing on a tiny laptop, focused determined face, a small sweat drop"),
+    ("angry",    "furious, puffed up, red anger vein mark on head, steam puffs, gritted teeth"),
+    ("happy",    "jumping with pure joy, huge smile, eyes closed happily, sparkles around"),
+    ("sad",      "slumped and dejected, big teary eyes, drooping posture"),
+    ("eating",   "happily munching a snack held in paws, cheeks stuffed, crumbs flying"),
+    ("playing",  "playing excitedly with a small ball, dynamic playful pose, tongue out"),
+    ("sleepy",   "very drowsy, half-closed heavy eyes, mid-yawn, swaying"),
+    ("sleeping", "curled up sleeping peacefully on a tiny cushion, closed eyes, calm face"),
+]
+_char_jobs = {}
+_char_lock = threading.Lock()
+
+
+def _char_worker(job_id, char_id, name, prompt_word):
+    from PIL import Image as _Img
+    import io as _io
+    try:
+        cfg = load_runtime_config()
+        api_key = (cfg.get("gemini_api_key") or "").strip()
+        char_dir = os.path.join(str(FRONTEND_PATH), "characters")
+        os.makedirs(char_dir, exist_ok=True)
+        # 风格锚 = 龙虾猫首帧(精度基准)
+        style_ref = os.path.join(char_dir, "_style_ref.png")
+        if not os.path.exists(style_ref):
+            sheet = _Img.open(os.path.join(str(FRONTEND_PATH), "star-idle-v5.png"))
+            sheet.crop((0, 0, 256, 256)).save(style_ref)
+        base_path = None
+        states = {}
+        for i, (state, sdesc) in enumerate(CHAR_STATES):
+            prompt = (
+                "Reference image: " + ("a pixel-art mascot character from our game (style and detail benchmark)."
+                    if base_path is None else
+                    "THIS EXACT character. Keep the identical character design, colors, proportions and pixel style.")
+                + f" Create a pixel art chibi mascot character sprite: a cute {prompt_word}, {sdesc}. "
+                + "High-detail pixel art like the reference quality, single character only, centered, "
+                + "entire background solid pure magenta (#FF00FF), no text, no watermark.")
+            ref = base_path or style_ref
+            raw = None
+            for attempt in range(3):
+                try:
+                    raw = _genprop_call_gemini(api_key, prompt, ref)
+                    break
+                except Exception:
+                    import time as _t
+                    _t.sleep(6)
+            if raw is None:
+                raise RuntimeError(f"状态 {state} 生成失败")
+            im = _genprop_key_magenta(_Img.open(_io.BytesIO(raw)))
+            bbox = im.getbbox()
+            if not bbox:
+                raise RuntimeError(f"状态 {state} 抠底后为空")
+            im = im.crop(bbox)
+            th = 150
+            im = im.resize((max(1, round(im.width * th / im.height)), th), _Img.NEAREST)
+            fn = f"char_{char_id}_{state}.png"
+            im.save(os.path.join(char_dir, fn))
+            if state == "idle":
+                base_path = os.path.join(char_dir, fn)
+            states[state] = fn
+            with _char_lock:
+                _char_jobs[job_id]["progress"] = i + 1
+                _char_jobs[job_id]["states"] = dict(states)
+        chars = []
+        if os.path.exists(CHARACTERS_FILE):
+            try:
+                chars = json.load(open(CHARACTERS_FILE, encoding="utf-8"))
+            except Exception:
+                chars = []
+        chars.append({"id": char_id, "name": name, "prompt": prompt_word,
+                      "states": states, "ts": datetime.now().isoformat()})
+        with open(CHARACTERS_FILE, "w", encoding="utf-8") as f:
+            json.dump(chars, f, ensure_ascii=False, indent=1)
+        with _char_lock:
+            _char_jobs[job_id]["status"] = "done"
+    except Exception as e:
+        with _char_lock:
+            _char_jobs[job_id]["status"] = "error"
+            _char_jobs[job_id]["error"] = str(e)
+
+
+@app.route("/characters/generate", methods=["POST"])
+def characters_generate():
+    data = request.get_json(force=True) or {}
+    word = (data.get("prompt") or "").strip()
+    if not word:
+        return jsonify({"ok": False, "msg": "请输入角色描述"}), 400
+    cfg = load_runtime_config()
+    if not (cfg.get("gemini_api_key") or "").strip():
+        return jsonify({"ok": False, "msg": "缺少生图 API Key"}), 400
+    import time as _t
+    char_id = format(int(_t.time()), "x")
+    job_id = "cj_" + char_id
+    with _char_lock:
+        _char_jobs[job_id] = {"status": "running", "progress": 0,
+                              "total": len(CHAR_STATES), "states": {}, "charId": char_id}
+    t = threading.Thread(target=_char_worker,
+                         args=(job_id, char_id, (data.get("name") or word)[:16], word), daemon=True)
+    t.start()
+    return jsonify({"ok": True, "jobId": job_id, "charId": char_id})
+
+
+@app.route("/characters/job/<jid>", methods=["GET"])
+def characters_job(jid):
+    with _char_lock:
+        return jsonify(_char_jobs.get(jid) or {"status": "unknown"})
+
+
+@app.route("/characters/list", methods=["GET"])
+def characters_list():
+    try:
+        if os.path.exists(CHARACTERS_FILE):
+            return jsonify(json.load(open(CHARACTERS_FILE, encoding="utf-8")))
+    except Exception:
+        pass
+    return jsonify([])
+
+
 @app.route("/editor/generated-list", methods=["GET"])
 def editor_generated_list():
     """已生成素材清单（供造物主物品栏「我的生成」分组）"""
