@@ -1211,18 +1211,22 @@
                         <button id="btn-back-home" class="btn-home" onclick="restoreHomeBackground()">🐚 回老家</button>
                     </div>
                     <div class="asset-toolbar" id="asset-broker-row">
-                        <button class="btn-broker" onclick="toggleBrokerPanel()">🤝 找中介</button>
+                        <button class="btn-broker" onclick="toggleBrokerPanel()">🎨 AI素材工坊</button>
                         <button id="btn-diy" class="btn-diy" onclick="toggleManualPanel()">🪚 自己装</button>
                     </div>
                     <div id="asset-move-result" class="asset-sub" style="margin-top:4px; margin-bottom:6px;"></div>
                     <div id="asset-broker-panel">
-                        <div class="asset-sub" style="margin-bottom:6px;">写你的风格主题（严格保持原始房间结构，只改变视觉风格）</div>
-                        <textarea id="asset-broker-prompt" placeholder="例如：像素风赛博东京夜景，霓虹灯、雨夜地面反光、蓝紫主色"></textarea>
-                        <div class="asset-toolbar" style="margin-top:6px; gap:8px; align-items:center; justify-content:flex-start;">
-                            <span id="speed-mode-label" class="asset-sub" style="min-width:62px;">生成模式</span>
-                            <button id="speed-fast-btn" type="button" onclick="setSpeedMode('fast')" style="background:#22c55e;color:#052e16;border-color:#16a34a;">🍌2</button>
-                            <button id="speed-quality-btn" type="button" onclick="setSpeedMode('quality')" style="background:#334155;color:#e5e7eb;border-color:#475569;">🍌Pro</button>
+                        <div class="asset-sub" style="margin-bottom:6px;">描述想要的素材，AI 按当前像素风格生成，完成后自动放进造物主模式（可拖动/缩放/删除）</div>
+                        <div class="asset-toolbar" style="margin-bottom:6px; gap:8px; align-items:center; justify-content:flex-start;">
+                            <span class="asset-sub" style="min-width:34px;">类型</span>
+                            <select id="ai-prop-kind" style="background:#1f2937;color:#e5e7eb;border:1px solid #475569;border-radius:6px;padding:5px 6px;font-family:ArkPixel,monospace;">
+                                <option value="object">🪑 物件（家具/设备/装饰）</option>
+                                <option value="floor">🟫 地板纹理（可铺贴/换房间地板）</option>
+                                <option value="wall">🧱 墙面纹理（生成可摆放墙段）</option>
+                            </select>
                         </div>
+                        <textarea id="asset-broker-prompt" placeholder="例如：绿色台球桌 / 圣诞树 / 波斯地毯纹理 / 红砖墙面"></textarea>
+                        <div id="ai-prop-status" class="asset-sub" style="margin-top:6px;"></div>
                         <details id="asset-gemini-panel" style="margin-top:6px; border:0; border-top:1px solid rgba(148,163,184,.18); border-radius:0; padding:8px 0 0; background:transparent;">
                             <summary id="gemini-panel-summary" style="cursor:pointer; color:#cbd5e1;">🔐 API 设置（可折叠）</summary>
                             <div id="asset-gemini-config" style="display:block; margin-top:6px;">
@@ -1237,7 +1241,7 @@
                             </div>
                         </details>
                         <div id="asset-broker-actions">
-                            <button onclick="generateCustomRpgBackground()">按中介方案搬家</button>
+                            <button id="ai-prop-go" onclick="generateAiProp()">🎨 生成素材</button>
                         </div>
                     </div>
                 </div>
@@ -1326,13 +1330,13 @@
                 hideDrawer: '👁 隐藏侧边栏', showDrawer: '👁 显示侧边栏',
                 assetHide: '隐藏', assetShow: '显示',
                 resetToDefault: '重置为默认资产', restorePrevAsset: '用上一版',
-                btnMove: '📦 搬新家', btnHome: '🐚 回老家', btnHomeLast: '↩️ 回上一个家', btnHomeFavorite: '⭐ 收藏这个家', btnBroker: '🤝 找中介', btnDIY: '🪚 自己装', btnBrokerGo: '听中介的',
+                btnMove: '📦 搬新家', btnHome: '🐚 回老家', btnHomeLast: '↩️ 回上一个家', btnHomeFavorite: '⭐ 收藏这个家', btnBroker: '🎨 AI素材工坊', btnDIY: '🪚 自己装', btnBrokerGo: '🎨 生成素材',
                 homeFavTitle: '🏠 收藏的家', homeFavEmpty: '还没有收藏，先点“⭐ 收藏这个家”', homeFavApply: '替换到当前地图', homeFavDelete: '删除', homeFavSaved: '✅ 已收藏当前地图', homeFavApplied: '✅ 已替换为收藏地图', homeFavDeleted: '🗑️ 已删除收藏',
-                brokerHint: '你会给龙虾推荐什么样的房子',
-                brokerPromptPh: '例如：故宫主题、莫奈风格、地牢主题、兵马俑主题……',
-                brokerNeedPrompt: '请先输入中介方案描述',
-                brokerGenerating: '🏘️ 正在按中介方案生成底图，请稍候（约20-90秒）...',
-                brokerDone: '✅ 已按中介方案生成并替换底图，正在刷新房间...',
+                brokerHint: '描述想要的素材，AI 按当前像素风格生成，完成后自动放进造物主模式',
+                brokerPromptPh: '例如：绿色台球桌 / 圣诞树 / 波斯地毯纹理 / 红砖墙面',
+                brokerNeedPrompt: '请先描述想生成的素材',
+                brokerGenerating: '🎨 正在生成素材，请稍候（约20-60秒）…',
+                brokerDone: '✅ 素材已生成并放到视野中央，去拖到喜欢的位置吧',
                 moveSuccess: '✅ 搬家成功！',
                 brokerMissingKey: '❌ 生图失败：缺少 GEMINI API Key，请在下方填写并保存后重试',
                 geminiPanelTitle: '🔐 API 设置（可折叠）', geminiHint: '可选：填写你的生图 API Key（留空不影响基础功能）', geminiApiDoc: '📘 如何申请 Google API Key', geminiInputPh: '粘贴 GEMINI_API_KEY（不会回显）', geminiSaveKey: '保存 Key', geminiMaskNoKey: '当前状态：未配置 Key', geminiMaskHasKey: '当前已配置：',
@@ -1354,13 +1358,13 @@
                 hideDrawer: '👁 Hide Drawer', showDrawer: '👁 Show Drawer',
                 assetHide: 'Hide', assetShow: 'Show',
                 resetToDefault: 'Reset to Default', restorePrevAsset: 'Use Previous',
-                btnMove: '📦 New Home', btnHome: '🐚 Go Home', btnHomeLast: '↩️ Last One', btnHomeFavorite: '⭐ Save This Home', btnBroker: '🤝 Broker', btnDIY: '🪚 DIY', btnBrokerGo: 'Follow Broker',
+                btnMove: '📦 New Home', btnHome: '🐚 Go Home', btnHomeLast: '↩️ Last One', btnHomeFavorite: '⭐ Save This Home', btnBroker: '🎨 AI Asset Studio', btnDIY: '🪚 DIY', btnBrokerGo: '🎨 Generate',
                 homeFavTitle: '🏠 Saved Homes', homeFavEmpty: 'No saved homes yet. Tap “⭐ Save This Home” first.', homeFavApply: 'Apply to Current Map', homeFavDelete: 'Delete', homeFavSaved: '✅ Current map saved', homeFavApplied: '✅ Applied saved home', homeFavDeleted: '🗑️ Saved home deleted',
-                brokerHint: 'What kind of house would you recommend for Lobster?',
-                brokerPromptPh: 'e.g. Forbidden City theme, Monet style, dungeon theme, Terracotta Warriors theme...',
-                brokerNeedPrompt: 'Please enter broker style prompt first',
-                brokerGenerating: '🏘️ Generating room background from broker plan, please wait (20-90s)...',
-                brokerDone: '✅ Broker plan applied and background replaced, refreshing room...',
+                brokerHint: 'Describe an asset; AI generates it in the current pixel style',
+                brokerPromptPh: 'e.g. green pool table / Christmas tree / persian rug texture / red brick wall',
+                brokerNeedPrompt: 'Please describe the asset first',
+                brokerGenerating: '🎨 Generating asset, please wait (20-60s)...',
+                brokerDone: '✅ Asset generated and placed at view center',
                 moveSuccess: '✅ Move successful!',
                 brokerMissingKey: '❌ Generation failed: missing GEMINI API key. Fill it below and retry.',
                 geminiPanelTitle: '🔐 API Settings (collapsible)', geminiHint: 'Optional: set your image API key (base features work without it)', geminiApiDoc: '📘 How to get a Google API Key', geminiInputPh: 'Paste GEMINI_API_KEY (input hidden)', geminiSaveKey: 'Save Key', geminiMaskNoKey: 'Current: no key configured', geminiMaskHasKey: 'Configured key:',
@@ -1382,13 +1386,13 @@
                 hideDrawer: '👁 サイドバーを隠す', showDrawer: '👁 サイドバーを表示',
                 assetHide: '非表示', assetShow: '表示',
                 resetToDefault: 'デフォルトへ戻す', restorePrevAsset: '前の版へ戻す',
-                btnMove: '📦 引っ越し', btnHome: '🐚 実家に戻る', btnHomeLast: '↩️ ひとつ前へ', btnHomeFavorite: '⭐ この家を保存', btnBroker: '🤝 仲介', btnDIY: '🪚 自分で装飾', btnBrokerGo: '仲介に任せる',
+                btnMove: '📦 引っ越し', btnHome: '🐚 実家に戻る', btnHomeLast: '↩️ ひとつ前へ', btnHomeFavorite: '⭐ この家を保存', btnBroker: '🎨 AI素材工房', btnDIY: '🪚 自分で装飾', btnBrokerGo: '🎨 生成',
                 homeFavTitle: '🏠 保存した家', homeFavEmpty: 'まだ保存がありません。先に「⭐ この家を保存」を押してください。', homeFavApply: '現在のマップに適用', homeFavDelete: '削除', homeFavSaved: '✅ 現在のマップを保存しました', homeFavApplied: '✅ 保存した家を適用しました', homeFavDeleted: '🗑️ 保存した家を削除しました',
-                brokerHint: 'ロブスターにはどんな家をおすすめしますか',
-                brokerPromptPh: '例：故宮テーマ、モネ風、ダンジョン風、兵馬俑テーマ…',
-                brokerNeedPrompt: '先に仲介プランの説明を入力してください',
-                brokerGenerating: '🏘️ 仲介プランで背景を生成中（20〜90秒）...',
-                brokerDone: '✅ 仲介プランを適用して背景を更新しました。部屋を更新中...',
+                brokerHint: '欲しい素材を説明すると、AIが現在のピクセルスタイルで生成します',
+                brokerPromptPh: '例：ビリヤード台 / クリスマスツリー / ペルシャ絨毯 / レンガの壁',
+                brokerNeedPrompt: '先に素材の説明を入力してください',
+                brokerGenerating: '🎨 素材を生成中（20〜60秒）…',
+                brokerDone: '✅ 素材を生成し、ビュー中央に配置しました',
                 moveSuccess: '✅ 引っ越し成功！',
                 brokerMissingKey: '❌ 生成失敗：GEMINI APIキーが未設定です。下で入力して保存してください。',
                 geminiPanelTitle: '🔐 API設定（折りたたみ）', geminiHint: '任意：画像生成APIキーを設定（未設定でも基本機能は利用可）', geminiApiDoc: '📘 Google API Keyの取得方法', geminiInputPh: 'GEMINI_API_KEY を貼り付け（入力は非表示）', geminiSaveKey: 'Keyを保存', geminiMaskNoKey: '現在：キー未設定', geminiMaskHasKey: '設定済みキー：',
@@ -4107,19 +4111,29 @@ function toggleBrokerPanel() {
             { cat: '墙面', key: 'prop_whiteboard',      name: '白板',   layer: 'wall', type: 'decor' },
             { cat: '墙面', key: 'prop_pinboard',        name: '公告板', layer: 'wall', type: 'decor' },
             // ---- 地板与地垫 ----
-            { cat: '地板与地垫', key: 'prop_rug',        name: '圆地毯', layer: 'under', type: 'decor' },
-            { cat: '地板与地垫', key: 'prop_mat',        name: '门垫',   layer: 'under', type: 'decor' },
-            { cat: '地板与地垫', key: 'patch_wood',      name: '木地板', layer: 'floorpatch', type: 'floor' },
-            { cat: '地板与地垫', key: 'patch_wood2',     name: '原木地板', layer: 'floorpatch', type: 'floor' },
-            { cat: '地板与地垫', key: 'patch_darkwood',  name: '深木地板', layer: 'floorpatch', type: 'floor' },
-            { cat: '地板与地垫', key: 'patch_carpet',    name: '紫地毯砖', layer: 'floorpatch', type: 'floor' },
-            { cat: '地板与地垫', key: 'patch_carpetblue', name: '蓝地毯砖', layer: 'floorpatch', type: 'floor' },
-            { cat: '地板与地垫', key: 'patch_stone',     name: '石板地', layer: 'floorpatch', type: 'floor' },
-            { cat: '地板与地垫', key: 'patch_marble',    name: '大理石', layer: 'floorpatch', type: 'floor' },
-            { cat: '地板与地垫', key: 'patch_checker',   name: '黑白棋盘', layer: 'floorpatch', type: 'floor' },
-            { cat: '地板与地垫', key: 'patch_concrete',  name: '水泥地', layer: 'floorpatch', type: 'floor' },
-            { cat: '地板与地垫', key: 'patch_tech',      name: '科技地砖', layer: 'floorpatch', type: 'floor' },
-            { cat: '地板与地垫', key: 'patch_grass',     name: '草地',   layer: 'floorpatch', type: 'floor' }
+            { cat: '地板与墙体', key: 'prop_rug',        name: '圆地毯', layer: 'under', type: 'decor' },
+            { cat: '地板与墙体', key: 'prop_mat',        name: '门垫',   layer: 'under', type: 'decor' },
+            { cat: '地板与墙体', key: 'patch_wood',      name: '木地板', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与墙体', key: 'patch_wood2',     name: '原木地板', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与墙体', key: 'patch_darkwood',  name: '深木地板', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与墙体', key: 'patch_carpet',    name: '紫地毯砖', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与墙体', key: 'patch_carpetblue', name: '蓝地毯砖', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与墙体', key: 'patch_stone',     name: '石板地', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与墙体', key: 'patch_marble',    name: '大理石', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与墙体', key: 'patch_checker',   name: '黑白棋盘', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与墙体', key: 'patch_concrete',  name: '水泥地', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与墙体', key: 'patch_tech',      name: '科技地砖', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与墙体', key: 'patch_grass',     name: '草地',   layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与墙体', key: 'patch_wallpiece_h',   name: '横墙段', layer: 'wallpiece', type: 'wall' },
+            { cat: '地板与墙体', key: 'patch_wallpiece_v',   name: '竖墙段', layer: 'wallpiece', type: 'wall' },
+            { cat: '地板与墙体', key: 'patch_wallpiece_end', name: '墙端头', layer: 'wallpiece', type: 'wall' }
+        ];
+        // 房间地板可选纹理（AI 生成的地板会动态追加）
+        const FLOOR_TEXTURE_OPTIONS = [
+            ['tile_wood', '木地板'], ['tile_wood2', '原木地板'], ['tile_darkwood', '深木地板'],
+            ['tile_carpet', '紫地毯'], ['tile_carpetblue', '蓝地毯'], ['tile_stone', '石板地'],
+            ['tile_marble', '大理石'], ['tile_checker', '黑白棋盘'], ['tile_concrete', '水泥地'],
+            ['tile_tech', '科技地砖'], ['tile_grass', '草地']
         ];
         window.editorItems = {};
         window.editorMode = false;
@@ -4130,6 +4144,7 @@ function toggleBrokerPanel() {
         function editorDepthFor(layer, y) {
             if (layer === 'floorpatch') return -94;   // 地板贴片：仅盖住基础地板
             if (layer === 'under') return -91;
+            if (layer === 'wallpiece') return -80;    // 可摆放墙段：与真实墙体同层
             if (layer === 'wall') return -68;
             if (layer === 'desk') return 1001;
             if (layer === 'decor') return 4;
@@ -4138,10 +4153,18 @@ function toggleBrokerPanel() {
         }
         function registerEditorItem(scene, id, spr, layer, custom = false, type = '') {
             spr.__editorId = id;
-            spr.setDepth(editorDepthFor(layer, spr.y));
+            if (layer !== 'keep') spr.setDepth(editorDepthFor(layer, spr.y));
             window.editorItems[id] = { spr, layer, custom, type,
                 orig: { x: spr.x, y: spr.y, scale: spr.scaleX } };
             if (window.editorMode) enableItemInput(scene, window.editorItems[id]);
+            return window.editorItems[id];
+        }
+        // 物品移动后统一处理：联动精灵(影子/动画)跟随 + 锚点回调 + 深度刷新
+        function editorApplyItemPosition(it) {
+            const s = it.spr;
+            (it.linked || []).forEach(l => l.spr.setPosition(s.x + (l.dx || 0), s.y + (l.dy || 0)));
+            if (it.layer === 'floor') s.setDepth(editorDepthFor('floor', s.y));
+            if (it.onMove) it.onMove(s.x, s.y);
         }
         function enableItemInput(scene, it) {
             const spr = it.spr;
@@ -4198,7 +4221,13 @@ function toggleBrokerPanel() {
                     overrides[id] = { x: s.x, y: s.y, scale: +s.scaleX.toFixed(3), hidden };
                 }
             });
-            return { overrides, custom };
+            // 房间地板 / 墙面纹理（仅记录与默认不同的）
+            const roomFloors = {};
+            Object.entries(window.roomFloorSprites || {}).forEach(([rid, room]) => {
+                if (room.cur && room.cur !== room.def) roomFloors[rid] = room.cur;
+            });
+            const wallFace = (window.wallFaceCur && window.wallFaceCur !== 'wall_face') ? window.wallFaceCur : null;
+            return { overrides, custom, roomFloors, wallFace };
         }
         function queueEditorSave() {
             clearTimeout(editorSaveTimer);
@@ -4226,15 +4255,30 @@ function toggleBrokerPanel() {
             spr.setOrigin(0.5);
             if (rec.scale) spr.setScale(rec.scale);
             registerEditorItem(scene, rec.id, spr, rec.layer || 'floor', true, rec.type || '');
-            window.editorItems[rec.id].frame = rec.frame;
-            window.editorItems[rec.id].dispName = rec.n;
+            const it = window.editorItems[rec.id];
+            it.frame = rec.frame;
+            it.dispName = rec.n;
+            // 点击切换款式（植物/海报/猫咪等图集素材，非造物主模式下生效）
+            if (['plants', 'posters', 'cats'].indexOf(rec.key) >= 0) {
+                spr.setInteractive({ useHandCursor: true });
+                spr.__wasInteractive = true;
+                spr.on('pointerdown', () => {
+                    if (window.editorMode) return;
+                    const total = Math.max(1, (scene.textures.get(rec.key)?.frameTotal || 2) - 1);
+                    const next = Math.floor(Math.random() * total);
+                    spr.setFrame(next);
+                    it.frame = next;
+                    queueEditorSave();
+                });
+            }
             return spr;
         }
         async function loadEditorPlacements(scene) {
             try {
                 const data = await fetch('/editor/placements').then(r => r.json());
                 if (data && !Array.isArray(data)) {
-                    window.editorPlacements = { overrides: data.overrides || {}, custom: data.custom || [] };
+                    window.editorPlacements = { overrides: data.overrides || {}, custom: data.custom || [],
+                        roomFloors: data.roomFloors || {}, wallFace: data.wallFace || null };
                 }
             } catch (e) { /* 首次无存档 */ }
             Object.entries(window.editorPlacements.overrides).forEach(([id, o]) => {
@@ -4243,9 +4287,36 @@ function toggleBrokerPanel() {
                 it.spr.setPosition(o.x, o.y);
                 if (o.scale) it.spr.setScale(o.scale);
                 if (o.hidden) it.spr.setVisible(false);
-                if (it.layer === 'floor') it.spr.setDepth(editorDepthFor('floor', o.y));
+                editorApplyItemPosition(it);
             });
-            (window.editorPlacements.custom || []).forEach(rec => spawnCustomItem(scene, rec));
+            // AI 生成素材（gen_*）：纹理按需动态加载后再摆放
+            for (const rec of (window.editorPlacements.custom || [])) {
+                if (rec.key && rec.key.indexOf('gen_') === 0 && !scene.textures.exists(rec.key)) {
+                    await ensureTextureLoaded(rec.key, '/static/generated/' + rec.key + '.png');
+                }
+                if (rec.key.indexOf('gen_') === 0 && !scene.textures.exists(rec.key)) continue;
+                spawnCustomItem(scene, rec);
+            }
+            // 房间地板 / 墙面纹理
+            const rf = window.editorPlacements.roomFloors || {};
+            Object.entries(rf).forEach(([rid, tex]) => {
+                const room = window.roomFloorSprites[rid];
+                if (room && scene.textures.exists(tex)) { room.spr.setTexture(tex); room.cur = tex; }
+            });
+            const wf = window.editorPlacements.wallFace;
+            if (wf && scene.textures.exists(wf)) {
+                window.wallFaceSprites.forEach(s => s.setTexture(wf));
+                window.wallFaceCur = wf;
+            }
+        }
+        function ensureTextureLoaded(key, url) {
+            return new Promise((resolve) => {
+                const scene = game;
+                if (!scene || scene.textures.exists(key)) return resolve(true);
+                scene.load.image(key, url);
+                scene.load.once('complete', () => resolve(scene.textures.exists(key)));
+                scene.load.start();
+            });
         }
         function editorAddFromPalette(pal) {
             const cam = game.cameras.main;
@@ -4368,6 +4439,131 @@ function toggleBrokerPanel() {
             const flag = document.createElement('span');
             flag.id = 'creator-panel-grid-built';
             root.appendChild(flag);
+            buildCreatorRoomSection(root, makeCell, makeGrid);
+        }
+        // 「房间地板与墙面」编辑区 + 「我的生成」分组（含 AI 生成素材，异步构建）
+        async function buildCreatorRoomSection(root, makeCell, makeGrid) {
+            let gen = [];
+            try { gen = await fetch('/editor/generated-list').then(r => r.json()) || []; } catch (e) {}
+            window.__genAssets = gen;
+            const sec = document.createElement('div');
+            sec.innerHTML = '<div style="font-size:12px;color:#fbbf24;margin:8px 0 4px;">▪ 房间地板与墙面</div>';
+            const selCss = 'flex:1;background:#1f2937;color:#e5e7eb;border:1px solid #475569;border-radius:5px;padding:3px 4px;font-family:ArkPixel,monospace;font-size:11px;';
+            const floorOpts = FLOOR_TEXTURE_OPTIONS.concat(
+                gen.filter(g => g.kind === 'floor').map(g => [g.key, 'AI·' + g.name]));
+            Object.entries(window.roomFloorSprites || {}).forEach(([rid, room]) => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px;';
+                const sel = document.createElement('select');
+                sel.style.cssText = selCss;
+                floorOpts.forEach(([k, n]) => {
+                    const o = document.createElement('option');
+                    o.value = k; o.textContent = n;
+                    sel.appendChild(o);
+                });
+                if (floorOpts.some(([k]) => k === room.cur)) sel.value = room.cur;
+                sel.onchange = async () => {
+                    const k = sel.value;
+                    if (k.indexOf('gen_') === 0) await ensureTextureLoaded(k, '/static/generated/' + k + '.png');
+                    if (game.textures.exists(k)) { room.spr.setTexture(k); room.cur = k; queueEditorSave(); }
+                };
+                const lab = document.createElement('span');
+                lab.style.cssText = 'font-size:11px;color:#cbd5e1;min-width:64px;';
+                lab.textContent = room.name;
+                row.appendChild(lab); row.appendChild(sel);
+                sec.appendChild(row);
+            });
+            // 墙面纹理（整栋墙立面换肤）
+            const wrow = document.createElement('div');
+            wrow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:6px;';
+            const wsel = document.createElement('select');
+            wsel.style.cssText = selCss;
+            const wallOpts = [['wall_face', '木板墙（默认）']].concat(
+                gen.filter(g => g.kind === 'wall' && g.faceKey).map(g => [g.faceKey, 'AI·' + g.name]));
+            const curWall = window.wallFaceCur || 'wall_face';
+            wallOpts.forEach(([k, n]) => {
+                const o = document.createElement('option');
+                o.value = k; o.textContent = n;
+                wsel.appendChild(o);
+            });
+            if (wallOpts.some(([k]) => k === curWall)) wsel.value = curWall;
+            wsel.onchange = async () => {
+                const k = wsel.value;
+                if (k.indexOf('gen_') === 0) await ensureTextureLoaded(k, '/static/generated/' + k + '.png');
+                if (game.textures.exists(k)) {
+                    window.wallFaceSprites.forEach(s => s.setTexture(k));
+                    window.wallFaceCur = k;
+                    queueEditorSave();
+                }
+            };
+            const wlab = document.createElement('span');
+            wlab.style.cssText = 'font-size:11px;color:#cbd5e1;min-width:64px;';
+            wlab.textContent = '墙面纹理';
+            wrow.appendChild(wlab); wrow.appendChild(wsel);
+            sec.appendChild(wrow);
+            root.insertBefore(sec, root.firstChild);
+            // 「我的生成」分组
+            if (gen.length) {
+                const head = document.createElement('div');
+                head.style.cssText = 'font-size:12px;color:#fbbf24;margin:8px 0 4px;';
+                head.textContent = '▪ 🎨 我的生成（' + gen.length + '）';
+                root.appendChild(head);
+                const g2 = makeGrid();
+                gen.forEach(g => {
+                    const cell = document.createElement('div');
+                    cell.style.cssText = 'cursor:pointer;text-align:center;padding:6px 2px;border:1px solid #3a3a4a;border-radius:6px;background:#23232e;';
+                    cell.innerHTML = '<img src="/static/generated/' + g.key + '.png" loading="lazy" style="max-width:44px;max-height:38px;image-rendering:pixelated;">'
+                        + '<div style="font-size:11px;color:#cbd5e1;margin-top:2px;">' + (g.name || '素材') + '</div>';
+                    cell.onclick = () => editorAddGenerated(g);
+                    g2.appendChild(cell);
+                });
+                root.appendChild(g2);
+            }
+        }
+        async function editorAddGenerated(g) {
+            await ensureTextureLoaded(g.key, '/static/generated/' + g.key + '.png');
+            if (!game.textures.exists(g.key)) return;
+            const cam = game.cameras.main;
+            const rec = {
+                id: 'c' + Date.now().toString(36) + Math.floor(Math.random() * 999),
+                key: g.key, x: Math.round(cam.midPoint.x), y: Math.round(cam.midPoint.y),
+                scale: 1, layer: g.layer || 'floor', type: g.kind || 'decor', n: g.name
+            };
+            spawnCustomItem(game, rec);
+            editorSelect(rec.id);
+            queueEditorSave();
+        }
+        // AI 素材工坊：生成 → 动态加载 → 自动放进造物主模式
+        async function generateAiProp() {
+            const ta = document.getElementById('asset-broker-prompt');
+            const kindSel = document.getElementById('ai-prop-kind');
+            const statusEl = document.getElementById('ai-prop-status');
+            const btn = document.getElementById('ai-prop-go');
+            const desc = (ta && ta.value || '').trim();
+            if (!desc) { if (statusEl) statusEl.textContent = t('brokerNeedPrompt'); return; }
+            if (btn) btn.disabled = true;
+            if (statusEl) statusEl.textContent = t('brokerGenerating');
+            try {
+                const res = await fetch('/editor/generate-prop', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ desc, kind: kindSel ? kindSel.value : 'object' })
+                });
+                const j = await res.json();
+                if (!j.ok) throw new Error(j.msg || '生成失败');
+                await ensureTextureLoaded(j.key, j.url);
+                if (!window.editorMode) setEditorMode(true);
+                const cam = game.cameras.main;
+                const rec = { id: j.key, key: j.key, x: Math.round(cam.midPoint.x), y: Math.round(cam.midPoint.y),
+                    scale: 1, layer: j.layer, type: j.kind, n: j.name };
+                spawnCustomItem(game, rec);
+                editorSelect(rec.id);
+                queueEditorSave();
+                if (statusEl) statusEl.textContent = t('brokerDone');
+            } catch (e) {
+                if (statusEl) statusEl.textContent = '❌ ' + (e && e.message || e);
+            } finally {
+                if (btn) btn.disabled = false;
+            }
         }
         function setEditorMode(on) {
             window.editorMode = on;
@@ -4491,7 +4687,8 @@ function toggleBrokerPanel() {
             });
             // 地板贴片（floorpatch 层）
             ['wood', 'wood2', 'carpet', 'tech', 'stone', 'marble', 'darkwood',
-             'checker', 'concrete', 'grass', 'carpetblue'].forEach((k) => {
+             'checker', 'concrete', 'grass', 'carpetblue',
+             'wallpiece_h', 'wallpiece_v', 'wallpiece_end'].forEach((k) => {
                 this.load.image('patch_' + k, '/static/patch_' + k + '.png?v={{VERSION_TIMESTAMP}}');
             });
             // CC0 外部素材包（Kenney roguelike, 见 extra-props-meta.js）
@@ -4511,24 +4708,31 @@ function toggleBrokerPanel() {
             const CAP_H = 16, FACE_H = 44, V_W = 18;
 
             // ---- 1) 地板分区（铺满整图，接缝藏在墙体下） ----
+            window.roomFloorSprites = {};   // 房间地板 tileSprite 引用（造物主可换纹理）
             [
-                { x: 0,    y: 0,   w: 433,  h: 450, t: 'tile_carpet' },  // 老板办公室
-                { x: 0,    y: 450, w: 433,  h: 550, t: 'tile_wood2'  },  // 调研区
-                { x: 433,  y: 0,   w: 1167, h: 520, t: 'tile_wood'   },  // 开发区
-                { x: 433,  y: 520, w: 660,  h: 480, t: 'tile_stone'  },  // 休息区
-                { x: 1093, y: 520, w: 507,  h: 260, t: 'tile_tech'   },  // Bug 区
-                { x: 1093, y: 780, w: 507,  h: 220, t: 'tile_tech'   }   // 服务器区
-            ].forEach(f => scene.add.tileSprite(f.x, f.y, f.w, f.h, f.t).setOrigin(0).setDepth(-95));
+                { id: 'boss',     n: '老板办公室', x: 0,    y: 0,   w: 433,  h: 450, t: 'tile_carpet' },
+                { id: 'research', n: '调研区',     x: 0,    y: 450, w: 433,  h: 550, t: 'tile_wood2'  },
+                { id: 'dev',      n: '开发区',     x: 433,  y: 0,   w: 1167, h: 520, t: 'tile_wood'   },
+                { id: 'break',    n: '休息区',     x: 433,  y: 520, w: 660,  h: 480, t: 'tile_stone'  },
+                { id: 'bug',      n: 'Bug区',      x: 1093, y: 520, w: 507,  h: 260, t: 'tile_tech'   },
+                { id: 'server',   n: '服务器区',   x: 1093, y: 780, w: 507,  h: 220, t: 'tile_tech'   }
+            ].forEach(f => {
+                const ts = scene.add.tileSprite(f.x, f.y, f.w, f.h, f.t).setOrigin(0).setDepth(-95);
+                window.roomFloorSprites[f.id] = { spr: ts, name: f.n, def: f.t, cur: f.t };
+            });
+            window.wallFaceSprites = [];    // 墙立面引用（造物主可换纹理）
 
             // ---- 2) 墙体 ----
             // 横墙 = 墙帽 + 墙立面；竖墙 = 墙帽窄条（南端接通道时补一截立面残端）
             const hWall = (x, y, w) => {
                 scene.add.tileSprite(x, y, w, CAP_H, 'wall_cap').setOrigin(0).setDepth(-80);
-                scene.add.tileSprite(x, y + CAP_H, w, FACE_H, 'wall_face').setOrigin(0).setDepth(-80);
+                window.wallFaceSprites.push(
+                    scene.add.tileSprite(x, y + CAP_H, w, FACE_H, 'wall_face').setOrigin(0).setDepth(-80));
             };
             const vWall = (x, y1, y2, endFace) => {
                 scene.add.tileSprite(x, y1, V_W, y2 - y1, 'wall_cap').setOrigin(0).setDepth(-80);
-                if (endFace) scene.add.tileSprite(x, y2, V_W, FACE_H, 'wall_face').setOrigin(0).setDepth(-80);
+                if (endFace) window.wallFaceSprites.push(
+                    scene.add.tileSprite(x, y2, V_W, FACE_H, 'wall_face').setOrigin(0).setDepth(-80));
             };
             const bWall = (x, w) => {  // 底部外墙只见墙顶
                 scene.add.tileSprite(x, H - CAP_H, w, CAP_H, 'wall_cap').setOrigin(0).setDepth(-80);
@@ -4598,6 +4802,13 @@ function toggleBrokerPanel() {
             sofaShadow.setDepth(9);
             sofa = this.add.sprite(IDLE_SOFA_ANCHOR.x, IDLE_SOFA_ANCHOR.y, 'sofa_idle').setOrigin(0.5).setScale(0.62);
             sofa.setDepth(10);
+            // 沙发可编辑：影子联动 + 休息区锚点跟随（Star 待命位）
+            const sofaItem = registerEditorItem(this, 'sofa_break', sofa, 'keep');
+            sofaItem.linked = [{ spr: sofaShadow, dx: 0, dy: 0 }];
+            sofaItem.onMove = (x, y) => {
+                IDLE_SOFA_ANCHOR.x = x; IDLE_SOFA_ANCHOR.y = y;
+                if (typeof areas !== 'undefined' && areas.breakroom) { areas.breakroom.x = x; areas.breakroom.y = y; }
+            };
             areas = {
                 door: { x: 800, y: 960 },
                 boss: { x: 224, y: 250 },        // 老板办公室（YIMU）
@@ -4734,6 +4945,8 @@ function toggleBrokerPanel() {
             const cat = game.add.sprite(980, 880, 'cats', randomCatFrame).setOrigin(0.5).setScale(0.62);
             cat.setDepth(2000); // top layer
             cat.setInteractive({ useHandCursor: true });
+            cat.__wasInteractive = true;
+            registerEditorItem(game, 'cat_break', cat, 'keep');
             // Expose to global for click handler
             window.catSprite = cat;
             window.catsFrameCount = catsFrameCount;
@@ -4759,6 +4972,8 @@ function toggleBrokerPanel() {
             const coffeeMachine = this.add.sprite(520, 640, 'coffee_machine').setOrigin(0.5).setScale(0.7);
             coffeeMachine.setDepth(99);
             coffeeMachine.anims.play('coffee_machine', true);
+            const coffeeItem = registerEditorItem(this, 'coffee_break', coffeeMachine, 'keep');
+            coffeeItem.linked = [{ spr: coffeeMachineShadow, dx: 0, dy: 0 }];
 
             // Server room animation
             const serverFrameMax = Math.max(0, (this.textures.get('serverroom')?.frameTotal || 1) - 2);
@@ -4773,6 +4988,7 @@ function toggleBrokerPanel() {
             // 默认 idle: 静止第0帧
             serverroom.anims.stop();
             serverroom.setFrame(0);
+            registerEditorItem(this, 'server_rack', serverroom, 'keep');
 
             // Desk (Star 工位, 开发区) + 更多开发区桌 + 老板桌（扩容 v2）
             const desk = this.add.image(620, 250, 'desk_v2').setOrigin(0.5).setScale(0.68);
@@ -4782,7 +4998,9 @@ function toggleBrokerPanel() {
                 registerEditorItem(game, 'desk_dev_' + (i + 2), devDesk, 'desk');
             });
             const bossDesk = game.add.image(224, 320, 'desk_v2').setOrigin(0.5).setScale(0.72);
-            registerEditorItem(game, 'desk_boss', bossDesk, 'desk');
+            registerEditorItem(game, 'desk_boss', bossDesk, 'desk').onMove = (x, y) => {
+                if (typeof areas !== 'undefined' && areas.boss) { areas.boss.x = x; areas.boss.y = y - 70; }
+            };
 
             // Random flower pot at (310,390), default scale 0.8 (top layer)
             const flowerFrameCount = Math.max(1, FLOWERS_FRAME_COLS * FLOWERS_FRAME_ROWS); // 动态帧数
@@ -4831,6 +5049,12 @@ function toggleBrokerPanel() {
             starWorking.setDepth(900);  // starWorking under desk so desk partially covers it
             // Store reference to starWorking for state logic
             window.starWorking = starWorking;
+            // Star 工位桌可编辑：工作动画联动 + 开发区锚点跟随
+            const deskItem = registerEditorItem(this, 'desk_star', desk, 'keep');
+            deskItem.linked = [{ spr: starWorking, dx: 0, dy: -50 }];
+            deskItem.onMove = (x, y) => {
+                if (typeof areas !== 'undefined' && areas.writing) { areas.writing.x = x; areas.writing.y = y - 40; }
+            };
 
             // Sync animation sprite at (1157,592)
             const syncFrameTotal = Number(this.textures.get('sync_anim')?.frameTotal || 0);
@@ -4854,6 +5078,7 @@ function toggleBrokerPanel() {
             // default show first frame only
             syncAnimSprite.anims.stop();
             syncAnimSprite.setFrame(0);
+            registerEditorItem(this, 'sync_server', syncAnimSprite, 'keep');
 
             // Debug: expose star sprite too (for path calibration / visuals)
             window.starSprite = star;
@@ -5069,7 +5294,7 @@ function toggleBrokerPanel() {
                 obj.x = Math.round(dragX);
                 obj.y = Math.round(dragY);
                 const it = window.editorItems[obj.__editorId];
-                if (it && it.layer === 'floor') obj.setDepth(editorDepthFor('floor', obj.y));
+                if (it) editorApplyItemPosition(it);
                 editorSelBoxDraw();
                 queueEditorSave();
             });

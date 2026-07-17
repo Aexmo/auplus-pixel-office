@@ -289,6 +289,192 @@ def editor_placements():
     return jsonify([])
 
 
+# ================== 造物主 · AI 素材工坊 ==================
+GEN_ASSETS_FILE = os.path.join(ROOT_DIR, "generated-assets.json")
+GENPROP_MODEL = "gemini-3.1-flash-image-preview"
+
+GENPROP_OBJ_PROMPT = (
+    "Reference image: a pixel-art wooden desk sprite from our cozy office game. "
+    "Create a NEW sprite in the EXACT same pixel art style (same warm palette, same pixel "
+    "density, same outline and shading style, same 3/4 top-down game perspective):\n\n{desc}.\n\n"
+    "Requirements: single object only, centered, entire background must be solid pure magenta "
+    "(#FF00FF), no shadow cast on the background, no text, no watermark."
+)
+GENPROP_FLOOR_PROMPT = (
+    "Reference image: a pixel-art floor tile texture from our cozy office game. "
+    "Create a NEW seamless tileable pixel art FLOOR texture in the same style family "
+    "(same pixel density and rendering style):\n\n{desc}.\n\n"
+    "Requirements: top-down view, perfectly seamless and tileable, the texture fills the ENTIRE "
+    "image edge to edge, no border, no vignette, no single objects, no text, no watermark."
+)
+GENPROP_WALL_PROMPT = (
+    "Reference image: a pixel-art wall face texture from our cozy office game (horizontal planks "
+    "with baseboard). Create a NEW seamless horizontally-tileable pixel art WALL FACE texture in "
+    "the same style family (same pixel density and rendering style), seen straight-on:\n\n{desc}.\n\n"
+    "Requirements: horizontally seamless, the texture fills the ENTIRE image edge to edge, "
+    "include a slightly darker baseboard strip along the bottom edge, no border, no objects, "
+    "no text, no watermark."
+)
+
+
+def _genprop_call_gemini(api_key, prompt, ref_path):
+    import base64 as _b64
+    import urllib.request as _ur
+    ref = _b64.b64encode(open(ref_path, "rb").read()).decode()
+    mime = "image/webp" if str(ref_path).endswith(".webp") else "image/png"
+    body = {
+        "contents": [{"parts": [
+            {"text": prompt},
+            {"inline_data": {"mime_type": mime, "data": ref}},
+        ]}],
+        "generationConfig": {"responseModalities": ["IMAGE"]},
+    }
+    req = _ur.Request(
+        f"https://generativelanguage.googleapis.com/v1beta/models/{GENPROP_MODEL}:generateContent?key={api_key}",
+        data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    resp = json.load(_ur.urlopen(req, timeout=180))
+    for p in resp["candidates"][0]["content"]["parts"]:
+        d = p.get("inlineData") or p.get("inline_data")
+        if d:
+            import base64 as _b64b
+            return _b64b.b64decode(d["data"])
+    raise RuntimeError("模型未返回图片")
+
+
+def _genprop_key_magenta(im):
+    """品红抠底 + 去紫边（与 tools/postprocess_gemini_props.py 同逻辑）"""
+    im = im.convert("RGBA")
+    px = im.load()
+    W, H = im.size
+    for y in range(H):
+        for x in range(W):
+            r, g, b, a = px[x, y]
+            if r > 130 and b > 130 and g < 110 and abs(r - b) < 90 and (r - g) > 60 and (b - g) > 60:
+                px[x, y] = (0, 0, 0, 0)
+            elif r > 110 and b > 110 and g < r - 30 and g < b - 30:
+                m = (r + g + b) // 3
+                px[x, y] = ((r + m) // 2 - 20, g, (b + m) // 2 - 20, a)
+    kill = []
+    for y in range(H):
+        for x in range(W):
+            if px[x, y][3] == 0:
+                continue
+            n = 0
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < W and 0 <= ny < H and px[nx, ny][3] == 0:
+                    n += 1
+            r, g, b, a = px[x, y]
+            if n >= 2 and r > 150 and b > 150 and g < 120:
+                kill.append((x, y))
+    for x, y in kill:
+        px[x, y] = (0, 0, 0, 0)
+    return im
+
+
+@app.route("/editor/generate-prop", methods=["POST"])
+def editor_generate_prop():
+    """AI 素材工坊：生成物件/地板纹理/墙段，产物直接可在造物主模式摆放。"""
+    from PIL import Image as _Img
+    import io as _io
+    import time as _time
+    try:
+        data = request.get_json(force=True) or {}
+        desc = (data.get("desc") or "").strip()
+        kind = (data.get("kind") or "object")
+        if not desc:
+            return jsonify({"ok": False, "msg": "请填写素材描述"}), 400
+        cfg = load_runtime_config()
+        api_key = (cfg.get("gemini_api_key") or "").strip()
+        if not api_key:
+            return jsonify({"ok": False, "code": "MISSING_API_KEY",
+                            "msg": "缺少生图 API Key，请在 API 设置里保存后重试"}), 400
+
+        frontend_dir = str(FRONTEND_PATH)
+        if kind == "floor":
+            prompt = GENPROP_FLOOR_PROMPT.format(desc=desc)
+            ref = os.path.join(frontend_dir, "tile_wood.png")
+        elif kind == "wall":
+            prompt = GENPROP_WALL_PROMPT.format(desc=desc)
+            ref = os.path.join(frontend_dir, "wall_face.png")
+        else:
+            prompt = GENPROP_OBJ_PROMPT.format(desc=desc)
+            ref = os.path.join(frontend_dir, "desk-v3.webp")
+
+        raw = _genprop_call_gemini(api_key, prompt, ref)
+        im = _Img.open(_io.BytesIO(raw))
+
+        if kind == "floor":
+            # 中心裁正方形 → 192x192 地板贴片
+            s = min(im.size)
+            im = im.convert("RGBA").crop(((im.width - s) // 2, (im.height - s) // 2,
+                                          (im.width + s) // 2, (im.height + s) // 2))
+            out = im.resize((192, 192), _Img.NEAREST)
+            layer = "floorpatch"
+        elif kind == "wall":
+            # 中心裁 192:44 横条墙面 → 顶部拼墙帽 → 192x60 可摆放墙段
+            im = im.convert("RGBA")
+            ratio_h = max(1, int(im.width * 44 / 192))
+            top = max(0, (im.height - ratio_h) // 2)
+            face = im.crop((0, top, im.width, top + ratio_h)).resize((192, 44), _Img.NEAREST)
+            cap = _Img.open(os.path.join(frontend_dir, "wall_cap.png")).convert("RGBA")
+            out = _Img.new("RGBA", (192, 60), (0, 0, 0, 0))
+            for cx in range(0, 192, cap.width):
+                out.paste(cap.crop((0, 0, min(cap.width, 192 - cx), 16)), (cx, 0))
+            out.paste(face, (0, 16))
+            layer = "wallpiece"
+            wall_face_only = face   # 纯墙面版本，供房间墙体整体换肤
+        else:
+            im = _genprop_key_magenta(im)
+            bbox = im.getbbox()
+            if not bbox:
+                return jsonify({"ok": False, "msg": "抠底后为空图，换个描述再试"}), 500
+            im = im.crop(bbox)
+            th = max(48, min(200, int(data.get("size") or 110)))
+            out = im.resize((max(1, round(im.width * th / im.height)), th), _Img.NEAREST)
+            layer = "floor"
+
+        gen_dir = os.path.join(frontend_dir, "generated")
+        os.makedirs(gen_dir, exist_ok=True)
+        key = "gen_" + format(int(_time.time() * 1000), "x")
+        out.save(os.path.join(gen_dir, key + ".png"))
+
+        record = {"key": key, "name": desc[:24], "kind": kind, "layer": layer,
+                  "w": out.width, "h": out.height, "ts": datetime.now().isoformat()}
+        if kind == "wall":
+            wall_face_only.save(os.path.join(gen_dir, key + "_face.png"))
+            record["faceKey"] = key + "_face"
+        items = []
+        try:
+            if os.path.exists(GEN_ASSETS_FILE):
+                items = json.load(open(GEN_ASSETS_FILE, encoding="utf-8"))
+        except Exception:
+            items = []
+        items.append(record)
+        with open(GEN_ASSETS_FILE, "w", encoding="utf-8") as f:
+            json.dump(items, f, ensure_ascii=False, indent=1)
+
+        return jsonify({"ok": True, "key": key, "url": f"/static/generated/{key}.png",
+                        "layer": layer, "kind": kind, "w": out.width, "h": out.height,
+                        "name": record["name"]})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 500
+
+
+@app.route("/editor/generated-list", methods=["GET"])
+def editor_generated_list():
+    """已生成素材清单（供造物主物品栏「我的生成」分组）"""
+    try:
+        if os.path.exists(GEN_ASSETS_FILE):
+            items = json.load(open(GEN_ASSETS_FILE, encoding="utf-8"))
+            live = [it for it in items
+                    if os.path.exists(os.path.join(str(FRONTEND_PATH), "generated", it["key"] + ".png"))]
+            return jsonify(live)
+    except Exception:
+        pass
+    return jsonify([])
+
+
 @app.route("/electron-standalone", methods=["GET"])
 def electron_standalone_page():
     """Serve Electron-only standalone frontend page."""

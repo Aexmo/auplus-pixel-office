@@ -4,3 +4,6 @@ join-keys.json
 __pycache__/
 *.pyc
 .env
+runtime-config.json
+frontend/generated/
+generated-assets.json
