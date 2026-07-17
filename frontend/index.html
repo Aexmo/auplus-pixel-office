@@ -4290,7 +4290,9 @@ function toggleBrokerPanel() {
             const wallFace = (window.wallFaceCur && window.wallFaceCur !== 'wall_face') ? window.wallFaceCur : null;
             const payload = { overrides, custom, roomFloors, wallFace, signs,
                 warehouse: window.editorWarehouse || [],
-                removedWalls: Array.from(window.removedWalls || []) };
+                removedWalls: Array.from(window.removedWalls || []),
+                paletteHidden: window.paletteHidden || [],
+                paletteDeleted: window.paletteDeleted || [] };
             if (JSON.stringify(window.mapRooms) !== JSON.stringify(DEFAULT_ROOMS)) payload.mapRooms = window.mapRooms;
             return payload;
         }
@@ -4583,6 +4585,8 @@ function toggleBrokerPanel() {
             window.removedWalls = new Set(data.removedWalls || []);
             window.wallFaceCur = data.wallFace || null;
             window.editorWarehouse = data.warehouse || [];
+            window.paletteHidden = data.paletteHidden || [];
+            window.paletteDeleted = data.paletteDeleted || [];
             // gen_ 地板/墙面纹理先动态加载
             const genTex = [];
             Object.values(window.roomFloorState).forEach(t => { if (t && t.indexOf('gen_') === 0) genTex.push(t); });
@@ -4686,10 +4690,67 @@ function toggleBrokerPanel() {
             });
             location.reload();
         }
+        // ================== 物品栏（素材列表，可管理：仓库/删除） ==================
+        window.paletteHidden = [];    // 移入素材仓库的素材 key
+        window.paletteDeleted = [];   // 永久删除的内置素材 key
+        window.paletteManage = false; // 素材管理模式
         function buildCreatorPanel() {
-            if (document.getElementById('creator-panel-grid-built')) return;
+            if (window.__creatorPanelBuilt) return;
+            window.__creatorPanelBuilt = true;
+            fetch('/editor/generated-list').then(r => r.json()).catch(() => []).then(gen => {
+                window.__genAssets = gen || [];
+                renderPalette();
+                renderRoomLayoutSection();
+                renderWarehouseSection();
+            });
+        }
+        function paletteStoreKey(key) {
+            if (window.paletteHidden.indexOf(key) < 0) window.paletteHidden.push(key);
+            renderPalette(); queueEditorSave();
+        }
+        function paletteRestoreKey(key) {
+            window.paletteHidden = window.paletteHidden.filter(k => k !== key);
+            renderPalette(); queueEditorSave();
+        }
+        function paletteDeleteKey(key) {
+            const pwd = prompt('永久删除该素材需输入密码：');
+            if (pwd === null) return;
+            if (pwd !== '3123119') { alert('密码错误，未删除'); return; }
+            if (key.indexOf('gen_') === 0) {
+                fetch('/editor/generated/' + key, { method: 'DELETE' }).catch(() => {});
+                window.__genAssets = (window.__genAssets || []).filter(g => g.key !== key);
+            } else if (window.paletteDeleted.indexOf(key) < 0) {
+                window.paletteDeleted.push(key);
+            }
+            window.paletteHidden = window.paletteHidden.filter(k => k !== key);
+            renderPalette(); queueEditorSave();
+        }
+        function renderPalette() {
             const root = document.getElementById('creator-palette');
+            if (!root) return;
+            root.innerHTML = '';
             const SHEET_EMOJI = { plants: '🌿', posters: '🖼', cats: '🐱' };
+            const hidden = window.paletteHidden, deleted = window.paletteDeleted;
+            const makeGrid = () => {
+                const g = document.createElement('div');
+                g.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:6px;';
+                return g;
+            };
+            const decorateManage = (cell, key) => {
+                if (!window.paletteManage) return;
+                cell.style.position = 'relative';
+                const mk = (label, right, bg, fn) => {
+                    const b = document.createElement('div');
+                    b.textContent = label;
+                    b.style.cssText = 'position:absolute;top:-6px;' + (right ? 'right:-6px;' : 'left:-6px;')
+                        + 'width:18px;height:18px;line-height:18px;font-size:11px;text-align:center;'
+                        + 'border-radius:9px;cursor:pointer;background:' + bg + ';color:#fff;z-index:2;';
+                    b.onclick = (e) => { e.stopPropagation(); fn(); };
+                    cell.appendChild(b);
+                };
+                mk('📦', false, '#92742b', () => paletteStoreKey(key));
+                mk('✕', true, '#dc2626', () => paletteDeleteKey(key));
+            };
             const makeCell = (pal) => {
                 const cell = document.createElement('div');
                 cell.style.cssText = 'cursor:pointer;text-align:center;padding:6px 2px;border:1px solid #3a3a4a;border-radius:6px;background:#23232e;';
@@ -4698,83 +4759,42 @@ function toggleBrokerPanel() {
                     ? '<img src="' + thumbUrl + '" loading="lazy" style="max-width:44px;max-height:38px;image-rendering:pixelated;">'
                     : '<div style="font-size:24px;line-height:38px;">' + (SHEET_EMOJI[pal.key] || '📦') + '</div>')
                     + '<div style="font-size:11px;color:#cbd5e1;margin-top:2px;">' + pal.name + '</div>';
-                cell.onclick = () => editorAddFromPalette(pal);
+                cell.onclick = () => { if (!window.paletteManage) editorAddFromPalette(pal); };
+                decorateManage(cell, pal.key);
                 return cell;
             };
-            const makeGrid = () => {
-                const g = document.createElement('div');
-                g.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:6px;';
-                return g;
-            };
-            // 内置素材：按分类分组
+            // 管理开关
+            const mrow = document.createElement('div');
+            mrow.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:6px;';
+            const mbtn = document.createElement('button');
+            mbtn.textContent = window.paletteManage ? '✅ 完成管理' : '🧰 管理素材';
+            mbtn.style.cssText = 'padding:4px 8px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid '
+                + (window.paletteManage ? '#16a34a' : '#475569') + ';border-radius:5px;background:'
+                + (window.paletteManage ? '#14532d' : '#1f2937') + ';color:#e5e7eb;';
+            mbtn.onclick = () => { window.paletteManage = !window.paletteManage; renderPalette(); };
+            mrow.appendChild(mbtn);
+            if (window.paletteManage) {
+                const tip = document.createElement('span');
+                tip.style.cssText = 'font-size:10px;color:#94a3b8;';
+                tip.textContent = '📦=入仓库 ✕=永久删除';
+                mrow.appendChild(tip);
+            }
+            root.appendChild(mrow);
+            // 内置素材分组
+            const visible = EDITOR_PALETTE.filter(p2 => hidden.indexOf(p2.key) < 0 && deleted.indexOf(p2.key) < 0);
             const cats = [];
-            EDITOR_PALETTE.forEach(p => { if (!cats.includes(p.cat)) cats.push(p.cat); });
+            visible.forEach(p2 => { if (!cats.includes(p2.cat)) cats.push(p2.cat); });
             cats.forEach(cat => {
                 const head = document.createElement('div');
                 head.style.cssText = 'font-size:12px;color:#fbbf24;margin:8px 0 4px;';
                 head.textContent = '▪ ' + cat;
                 root.appendChild(head);
                 const g = makeGrid();
-                EDITOR_PALETTE.filter(p => p.cat === cat).forEach(p => g.appendChild(makeCell(p)));
+                visible.filter(p2 => p2.cat === cat).forEach(p2 => g.appendChild(makeCell(p2)));
                 root.appendChild(g);
             });
-            // CC0 外部素材包：折叠分组（缩略图用大图集 background-position 切片）
-            if (window.EXTRA_PROPS && window.EXTRA_PROPS.sheets && window.EXTRA_PROPS.sheets.length) {
-                const sheetInfo = {};
-                window.EXTRA_PROPS.sheets.forEach(s => { sheetInfo[s.key] = s; });
-                const GROUPS = [
-                    ['extra_indoor', 0, '📦 素材包·室内物件', 'floor'],
-                    ['extra_indoor', 1, '🧱 素材包·室内图块', 'floorpatch'],
-                    ['extra_city',   0, '📦 素材包·城市物件', 'floor'],
-                    ['extra_city',   1, '🧱 素材包·城市图块', 'floorpatch']
-                ];
-                GROUPS.forEach(([key, wantTile, title, layer]) => {
-                    const frames = window.EXTRA_PROPS.items
-                        .filter(it => it[0] === key && it[2] === wantTile)
-                        .map(it => it[1]);
-                    if (!frames.length) return;
-                    const info = sheetInfo[key];
-                    const det = document.createElement('details');
-                    det.style.cssText = 'margin-top:8px;';
-                    const sum = document.createElement('summary');
-                    sum.style.cssText = 'font-size:12px;color:#93c5fd;cursor:pointer;';
-                    sum.textContent = title + '（' + frames.length + '）';
-                    det.appendChild(sum);
-                    const g = document.createElement('div');
-                    g.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px;';
-                    const T = 44;   // 缩略格尺寸
-                    frames.forEach(f => {
-                        const col = f % info.cols, row = Math.floor(f / info.cols);
-                        const cell = document.createElement('div');
-                        cell.style.cssText = 'cursor:pointer;width:' + T + 'px;height:' + T + 'px;'
-                            + 'border:1px solid #3a3a4a;border-radius:4px;background-color:#23232e;'
-                            + 'background-image:url(/static/' + info.file + ');'
-                            + 'background-size:' + (info.cols * T) + 'px auto;'
-                            + 'background-position:-' + (col * T) + 'px -' + (row * T) + 'px;'
-                            + 'image-rendering:pixelated;';
-                        cell.onclick = () => editorAddFromPalette({
-                            key, name: (wantTile ? '图块' : '素材') + '#' + f,
-                            layer, type: wantTile ? 'floor' : 'decor', frameFixed: f
-                        });
-                        g.appendChild(cell);
-                    });
-                    det.appendChild(g);
-                    root.appendChild(det);
-                });
-            }
-            const flag = document.createElement('span');
-            flag.id = 'creator-panel-grid-built';
-            root.appendChild(flag);
-            buildCreatorRoomSection(root, makeCell, makeGrid);
-        }
-        // 「房间布局」编辑区 + 「我的生成」分组（含 AI 生成素材，异步构建）
-        async function buildCreatorRoomSection(root, makeCell, makeGrid) {
-            let gen = [];
-            try { gen = await fetch('/editor/generated-list').then(r => r.json()) || []; } catch (e) {}
-            window.__genAssets = gen;
-            renderRoomLayoutSection();
-            renderWarehouseSection();
-            // 「我的生成」分组
+            // 我的生成
+            const gen = (window.__genAssets || []).filter(g => hidden.indexOf(g.key) < 0);
             if (gen.length) {
                 const head = document.createElement('div');
                 head.style.cssText = 'font-size:12px;color:#fbbf24;margin:8px 0 4px;';
@@ -4786,10 +4806,32 @@ function toggleBrokerPanel() {
                     cell.style.cssText = 'cursor:pointer;text-align:center;padding:6px 2px;border:1px solid #3a3a4a;border-radius:6px;background:#23232e;';
                     cell.innerHTML = '<img src="/static/generated/' + g.key + '.png" loading="lazy" style="max-width:44px;max-height:38px;image-rendering:pixelated;">'
                         + '<div style="font-size:11px;color:#cbd5e1;margin-top:2px;">' + (g.name || '素材') + '</div>';
-                    cell.onclick = () => editorAddGenerated(g);
+                    cell.onclick = () => { if (!window.paletteManage) editorAddGenerated(g); };
+                    decorateManage(cell, g.key);
                     g2.appendChild(cell);
                 });
                 root.appendChild(g2);
+            }
+            // 素材仓库
+            if (window.paletteHidden.length) {
+                const head = document.createElement('div');
+                head.style.cssText = 'font-size:12px;color:#fbbf24;margin:8px 0 4px;';
+                head.textContent = '▪ 🧰 素材仓库（' + window.paletteHidden.length + '）';
+                root.appendChild(head);
+                window.paletteHidden.forEach(key => {
+                    const pal = EDITOR_PALETTE.find(p2 => p2.key === key);
+                    const g = (window.__genAssets || []).find(x => x.key === key);
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:3px;';
+                    row.innerHTML = '<span style="flex:1;font-size:11px;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
+                        + ((pal && pal.name) || (g && g.name) || key) + '</span>';
+                    const btn = document.createElement('button');
+                    btn.textContent = '取出';
+                    btn.style.cssText = 'padding:2px 8px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid #475569;border-radius:4px;background:#1f2937;color:#a7f3d0;';
+                    btn.onclick = () => paletteRestoreKey(key);
+                    row.appendChild(btn);
+                    root.appendChild(row);
+                });
             }
         }
         async function editorAddGenerated(g) {
@@ -4830,6 +4872,10 @@ function toggleBrokerPanel() {
                 spawnCustomItem(game, rec);
                 editorSelect(rec.id);
                 queueEditorSave();
+                window.__genAssets = (window.__genAssets || []).concat([{ key: j.key, name: j.name,
+                    kind: j.kind, layer: j.layer, faceKey: j.faceKey }]);
+                renderPalette();
+                renderRoomLayoutSection();
                 if (statusEl) statusEl.textContent = t('brokerDone');
             } catch (e) {
                 if (statusEl) statusEl.textContent = '❌ ' + (e && e.message || e);

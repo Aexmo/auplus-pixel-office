@@ -394,6 +394,9 @@ def editor_generate_prop():
         if kind == "floor":
             prompt = GENPROP_FLOOR_PROMPT.format(desc=desc)
             ref = os.path.join(frontend_dir, "tile_wood.png")
+        elif kind == "rug":
+            prompt = GENPROP_OBJ_PROMPT.format(desc=desc + ", seen from directly above")
+            ref = os.path.join(frontend_dir, "desk-v3.webp")
         elif kind == "wall":
             prompt = GENPROP_WALL_PROMPT.format(desc=desc)
             ref = os.path.join(frontend_dir, "wall_face.png")
@@ -430,20 +433,26 @@ def editor_generate_prop():
             if not bbox:
                 return jsonify({"ok": False, "msg": "抠底后为空图，换个描述再试"}), 500
             im = im.crop(bbox)
-            th = max(48, min(200, int(data.get("size") or 110)))
+            th = max(40, min(200, int(data.get("size") or (90 if kind == "rug" else 110))))
             out = im.resize((max(1, round(im.width * th / im.height)), th), _Img.NEAREST)
-            layer = "floor"
+            layer = "under" if kind == "rug" else "floor"
 
         gen_dir = os.path.join(frontend_dir, "generated")
         os.makedirs(gen_dir, exist_ok=True)
         key = "gen_" + format(int(_time.time() * 1000), "x")
         out.save(os.path.join(gen_dir, key + ".png"))
 
-        record = {"key": key, "name": desc[:24], "kind": kind, "layer": layer,
+        record = {"key": key, "name": (data.get("name") or desc)[:24], "kind": kind, "layer": layer,
                   "w": out.width, "h": out.height, "ts": datetime.now().isoformat()}
         if kind == "wall":
             wall_face_only.save(os.path.join(gen_dir, key + "_face.png"))
             record["faceKey"] = key + "_face"
+            # 端头件: 18宽 墙帽+立面
+            endp = _Img.new("RGBA", (18, 60), (0, 0, 0, 0))
+            cap2 = _Img.open(os.path.join(frontend_dir, "wall_cap.png")).convert("RGBA")
+            endp.paste(cap2.crop((0, 0, 18, 16)), (0, 0))
+            endp.paste(wall_face_only.crop((0, 0, 18, 44)), (0, 16))
+            endp.save(os.path.join(gen_dir, key + "_end.png"))
         items = []
         try:
             if os.path.exists(GEN_ASSETS_FILE):
@@ -451,12 +460,15 @@ def editor_generate_prop():
         except Exception:
             items = []
         items.append(record)
+        if kind == "wall":
+            items.append({"key": key + "_end", "name": record["name"] + "·端头", "kind": "wall",
+                          "layer": "wallpiece", "w": 18, "h": 60, "ts": record["ts"]})
         with open(GEN_ASSETS_FILE, "w", encoding="utf-8") as f:
             json.dump(items, f, ensure_ascii=False, indent=1)
 
         return jsonify({"ok": True, "key": key, "url": f"/static/generated/{key}.png",
                         "layer": layer, "kind": kind, "w": out.width, "h": out.height,
-                        "name": record["name"]})
+                        "name": record["name"], "faceKey": record.get("faceKey")})
     except Exception as e:
         return jsonify({"ok": False, "msg": str(e)}), 500
 
