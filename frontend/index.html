@@ -3979,39 +3979,78 @@ function toggleBrokerPanel() {
         // desk=桌面层 / decor=低层装饰 / top=桌上物。type 为小人识别用途预留标签。
         const EDITOR_DEFAULTS = [
             // 挂墙
-            { id: 'trophy_boss',   key: 'prop_trophy',     x: 310,  y: 54,  layer: 'wall' },
-            { id: 'clock_boss',    key: 'prop_clock',      x: 374,  y: 40,  layer: 'wall' },
-            { id: 'wb_dev',        key: 'prop_whiteboard', x: 1120, y: 48,  layer: 'wall' },
-            { id: 'tv_dev',        key: 'prop_tv',         x: 1270, y: 46,  layer: 'wall' },
-            { id: 'clock_dev',     key: 'prop_clock',      x: 1000, y: 40,  layer: 'wall' },
-            { id: 'pin_research',  key: 'prop_pinboard',   x: 300,  y: 462, layer: 'wall' },
-            { id: 'clock_break',   key: 'prop_clock',      x: 640,  y: 532, layer: 'wall' },
-            { id: 'wb_bug',        key: 'prop_whiteboard', x: 1480, y: 534, layer: 'wall' },
+            { id: 'trophy_boss',   key: 'prop_trophy',       x: 310,  y: 54,  layer: 'wall' },
+            { id: 'clock_boss',    key: 'prop3_clock_wall',  x: 374,  y: 42,  layer: 'wall' },
+            { id: 'wb_dev',        key: 'prop_whiteboard',   x: 1120, y: 48,  layer: 'wall' },
+            { id: 'tv_dev',        key: 'prop_tv',           x: 1270, y: 46,  layer: 'wall' },
+            { id: 'clock_dev',     key: 'prop3_clock_wall',  x: 1000, y: 42,  layer: 'wall' },
+            { id: 'pin_research',  key: 'prop3_noticeboard', x: 300,  y: 462, layer: 'wall' },
+            { id: 'clock_break',   key: 'prop3_clock_wall',  x: 640,  y: 532, layer: 'wall' },
+            { id: 'wb_bug',        key: 'prop_whiteboard',   x: 1480, y: 534, layer: 'wall' },
             // 地垫层
-            { id: 'rug_boss',      key: 'prop_rug',        x: 224,  y: 350, layer: 'under' },
-            { id: 'rug_break',     key: 'prop_rug',        x: 760,  y: 810, layer: 'under', scale: 1.15 },
-            { id: 'mat_door',      key: 'prop_mat',        x: 810,  y: 972, layer: 'under' },
+            { id: 'rug_boss',      key: 'prop3_rug_round',   x: 224,  y: 350, layer: 'under' },
+            { id: 'rug_break',     key: 'prop3_rug_round',   x: 760,  y: 810, layer: 'under', scale: 1.2 },
+            { id: 'mat_door',      key: 'prop_mat',          x: 810,  y: 972, layer: 'under' },
             // 落地
-            { id: 'shelf_boss',    key: 'prop_bookshelf',  x: 72,   y: 152, layer: 'floor' },
-            { id: 'cab_boss',      key: 'prop_cabinet',    x: 392,  y: 244, layer: 'floor' },
-            { id: 'boxes_dev',     key: 'prop_boxes',      x: 478,  y: 446, layer: 'floor' },
-            { id: 'printer_dev',   key: 'prop_printer',    x: 1520, y: 190, layer: 'floor' },
-            { id: 'wc_dev',        key: 'prop_watercooler',x: 1544, y: 268, layer: 'floor' },
-            { id: 'cab_dev',       key: 'prop_cabinet',    x: 1522, y: 350, layer: 'floor' },
-            { id: 'shelf_research',key: 'prop_bookshelf',  x: 62,   y: 582, layer: 'floor' },
-            { id: 'meeting_research', key: 'prop_meeting_table', x: 222, y: 856, layer: 'floor' },
-            { id: 'cab_research',  key: 'prop_cabinet',    x: 392,  y: 578, layer: 'floor' },
-            { id: 'vending_break', key: 'prop_vending',    x: 1046, y: 758, layer: 'floor' },
-            { id: 'kitchen_break', key: 'prop_kitchen',    x: 646,  y: 582, layer: 'floor' },
-            { id: 'fridge_break',  key: 'prop_fridge',     x: 752,  y: 574, layer: 'floor' },
-            { id: 'fireplace_break', key: 'prop_fireplace', x: 922, y: 566, layer: 'floor' },
-            { id: 'wc_break',      key: 'prop_watercooler',x: 1036, y: 628, layer: 'floor' },
-            { id: 'caution_bug',   key: 'prop_caution',    x: 1140, y: 604, layer: 'floor' },
-            { id: 'boxes_bug',     key: 'prop_boxes',      x: 1520, y: 700, layer: 'floor' },
-            { id: 'cab_server',    key: 'prop_cabinet',    x: 1160, y: 892, layer: 'floor' },
-            { id: 'boxes_server',  key: 'prop_boxes',      x: 1512, y: 908, layer: 'floor' }
+            { id: 'shelf_boss',    key: 'prop3_bookshelf_big', x: 100, y: 152, layer: 'floor' },
+            { id: 'cab_boss',      key: 'prop_cabinet',      x: 392,  y: 244, layer: 'floor' },
+            { id: 'boxes_dev',     key: 'prop_boxes',        x: 478,  y: 446, layer: 'floor' },
+            { id: 'printer_dev',   key: 'prop3_printer',     x: 1520, y: 190, layer: 'floor' },
+            { id: 'wc_dev',        key: 'prop3_watercooler', x: 1544, y: 268, layer: 'floor' },
+            { id: 'cab_dev',       key: 'prop_cabinet',      x: 1522, y: 350, layer: 'floor' },
+            { id: 'shelf_research',key: 'prop3_bookshelf_big', x: 100, y: 582, layer: 'floor' },
+            { id: 'meeting_research', key: 'prop3_meeting_table', x: 222, y: 856, layer: 'floor' },
+            { id: 'cab_research',  key: 'prop_cabinet',      x: 392,  y: 578, layer: 'floor' },
+            { id: 'vending_break', key: 'prop3_vending',     x: 1030, y: 752, layer: 'floor' },
+            { id: 'kitchen_break', key: 'prop3_kitchen_counter', x: 646, y: 582, layer: 'floor' },
+            { id: 'fridge_break',  key: 'prop3_fridge',      x: 764,  y: 585, layer: 'floor' },
+            { id: 'fireplace_break', key: 'prop3_fireplace', x: 922,  y: 566, layer: 'floor' },
+            { id: 'wc_break',      key: 'prop3_watercooler', x: 1036, y: 628, layer: 'floor' },
+            { id: 'caution_bug',   key: 'prop_caution',      x: 1140, y: 604, layer: 'floor' },
+            { id: 'boxes_bug',     key: 'prop_boxes',        x: 1520, y: 700, layer: 'floor' },
+            { id: 'cab_server',    key: 'prop_cabinet',      x: 1160, y: 892, layer: 'floor' },
+            { id: 'boxes_server',  key: 'prop_boxes',        x: 1512, y: 908, layer: 'floor' }
         ];
         const EDITOR_PALETTE = [
+            // ---- ✨ 精品家具（生图定制，与场景同风格） ----
+            { cat: '✨ 精品家具', key: 'prop3_sofa_fabric',    name: '布艺沙发', layer: 'floor', type: 'seat' },
+            { cat: '✨ 精品家具', key: 'prop3_armchair',       name: '皮沙发椅', layer: 'floor', type: 'seat' },
+            { cat: '✨ 精品家具', key: 'prop3_beanbag',        name: '懒人沙发', layer: 'floor', type: 'seat' },
+            { cat: '✨ 精品家具', key: 'prop3_coffee_table',   name: '咖啡桌',   layer: 'floor', type: 'desk' },
+            { cat: '✨ 精品家具', key: 'prop3_meeting_table',  name: '会议桌',   layer: 'floor', type: 'desk' },
+            { cat: '✨ 精品家具', key: 'prop3_bar_counter',    name: '吧台',     layer: 'floor', type: 'desk' },
+            { cat: '✨ 精品家具', key: 'prop3_pingpong',       name: '乒乓球桌', layer: 'floor', type: 'desk' },
+            { cat: '✨ 精品家具', key: 'prop3_bookshelf_big',  name: '大书柜',   layer: 'floor', type: 'storage' },
+            { cat: '✨ 精品家具', key: 'prop3_tv_console',     name: '电视柜',   layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品家具', key: 'prop3_partition',      name: '屏风',     layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品家具', key: 'prop3_safe',           name: '保险柜',   layer: 'floor', type: 'storage' },
+            { cat: '✨ 精品家具', key: 'prop3_arcade',         name: '街机',     layer: 'floor', type: 'machine' },
+            { cat: '✨ 精品家具', key: 'prop3_aquarium',       name: '鱼缸',     layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品家具', key: 'prop3_cat_tree',       name: '猫爬架',   layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品家具', key: 'prop3_fireplace',      name: '壁炉',     layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品家具', key: 'prop3_floor_lamp',     name: '落地灯',   layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品家具', key: 'prop3_plant_big',      name: '大盆栽',   layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品家具', key: 'prop3_fridge',         name: '复古冰箱', layer: 'floor', type: 'machine' },
+            { cat: '✨ 精品家具', key: 'prop3_kitchen_counter', name: '厨房台',  layer: 'floor', type: 'machine' },
+            { cat: '✨ 精品家具', key: 'prop3_vending',        name: '售货机',   layer: 'floor', type: 'machine' },
+            { cat: '✨ 精品家具', key: 'prop3_watercooler',    name: '饮水机',   layer: 'floor', type: 'machine' },
+            { cat: '✨ 精品家具', key: 'prop3_printer',        name: '打印机',   layer: 'floor', type: 'machine' },
+            { cat: '✨ 精品家具', key: 'prop3_rug_round',      name: '圆编织毯', layer: 'under', type: 'decor' },
+            { cat: '✨ 精品家具', key: 'prop3_window_night',   name: '夜景窗',   layer: 'wall',  type: 'decor' },
+            { cat: '✨ 精品家具', key: 'prop3_painting_land',  name: '风景画',   layer: 'wall',  type: 'decor' },
+            { cat: '✨ 精品家具', key: 'prop3_noticeboard',    name: '公告板',   layer: 'wall',  type: 'decor' },
+            { cat: '✨ 精品家具', key: 'prop3_neon_sign',      name: '霓虹灯牌', layer: 'wall',  type: 'decor' },
+            { cat: '✨ 精品家具', key: 'prop3_clock_wall',     name: '挂钟',     layer: 'wall',  type: 'decor' },
+            // ---- 🏠 小屋复古（LPC 精选） ----
+            { cat: '🏠 小屋复古', key: 'lpc_bed',         name: '单人床',   layer: 'floor', type: 'seat' },
+            { cat: '🏠 小屋复古', key: 'lpc_bookshelf',   name: '复古书柜', layer: 'floor', type: 'storage' },
+            { cat: '🏠 小屋复古', key: 'lpc_drawer',      name: '抽屉柜',   layer: 'floor', type: 'storage' },
+            { cat: '🏠 小屋复古', key: 'lpc_trunk',       name: '木箱',     layer: 'floor', type: 'storage' },
+            { cat: '🏠 小屋复古', key: 'lpc_barrels',     name: '木桶堆',   layer: 'floor', type: 'decor' },
+            { cat: '🏠 小屋复古', key: 'lpc_sink',        name: '水槽柜',   layer: 'floor', type: 'machine' },
+            { cat: '🏠 小屋复古', key: 'lpc_wallclock_a', name: '摆钟A',    layer: 'wall',  type: 'decor' },
+            { cat: '🏠 小屋复古', key: 'lpc_wallclock_b', name: '摆钟B',    layer: 'wall',  type: 'decor' },
+            { cat: '🏠 小屋复古', key: 'lpc_wallclock_c', name: '摆钟C',    layer: 'wall',  type: 'decor' },
             // ---- 家具 ----
             { cat: '家具', key: 'desk_v2',            name: '办公桌', layer: 'desk',  type: 'desk', scale: 0.68, thumb: '/static/desk-v3.webp' },
             { cat: '家具', key: 'prop_meeting_table', name: '会议桌', layer: 'floor', type: 'desk' },
@@ -4353,7 +4392,7 @@ function toggleBrokerPanel() {
             loadingProgressContainer = document.getElementById('loading-progress-container');
             
             // 设置资源总数（全部首屏加载：装饰也第一时间出现）
-            totalAssets = 88;
+            totalAssets = 125;
             loadedAssets = 0;
             
             // 加载进度监听
@@ -4436,6 +4475,19 @@ function toggleBrokerPanel() {
              'safe', 'window_night', 'window_blinds', 'window_curtain', 'painting_mtn',
              'painting_abs', 'painting_sun', 'neon', 'wallshelf', 'globe', 'dartboard'].forEach((k) => {
                 this.load.image('prop2_' + k, '/static/prop2_' + k + '.png?v={{VERSION_TIMESTAMP}}');
+            });
+            // v4 精品道具（Gemini 生图定制，风格锚=desk-v3）
+            ['aquarium', 'arcade', 'armchair', 'bar_counter', 'beanbag', 'bookshelf_big',
+             'cat_tree', 'clock_wall', 'coffee_table', 'fireplace', 'floor_lamp', 'fridge',
+             'kitchen_counter', 'meeting_table', 'neon_sign', 'noticeboard', 'painting_land',
+             'partition', 'pingpong', 'plant_big', 'printer', 'rug_round', 'safe',
+             'sofa_fabric', 'tv_console', 'vending', 'watercooler', 'window_night'].forEach((k) => {
+                this.load.image('prop3_' + k, '/static/prop3_' + k + '.png?v={{VERSION_TIMESTAMP}}');
+            });
+            // 小屋复古组（LPC CC-BY-SA，署名见仓库 LPC_CREDITS.txt）
+            ['wallclock_a', 'wallclock_b', 'wallclock_c', 'barrels', 'bed', 'drawer',
+             'bookshelf', 'trunk', 'sink'].forEach((k) => {
+                this.load.image('lpc_' + k, '/static/lpc_' + k + '.png?v={{VERSION_TIMESTAMP}}');
             });
             // 地板贴片（floorpatch 层）
             ['wood', 'wood2', 'carpet', 'tech', 'stone', 'marble', 'darkwood',
