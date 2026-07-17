@@ -4205,6 +4205,10 @@ function toggleBrokerPanel() {
             if (window.editorMode) enableItemInput(scene, window.editorItems[id]);
             return window.editorItems[id];
         }
+        function editorSetItemVisible(it, vis) {
+            it.spr.setVisible(vis);
+            (it.linked || []).forEach(l => l.spr.setVisible(vis));
+        }
         // 物品移动后统一处理：联动精灵(影子/动画)跟随 + 锚点回调 + 深度刷新
         function editorApplyItemPosition(it) {
             const s = it.spr;
@@ -4388,7 +4392,7 @@ function toggleBrokerPanel() {
                     scale: +s.scaleX.toFixed(3), layer: it.layer, type: it.type, n: it.dispName }, n: it.dispName || s.texture.key });
                 s.destroy(); delete window.editorItems[id];
             } else {
-                s.setVisible(false);
+                editorSetItemVisible(it, false);
                 window.editorWarehouse.push({ t: 'def', id, n: (EDITOR_PALETTE.find(p2 => p2.key === s.texture.key) || {}).name || id });
             }
             window.editorSelectedId = null;
@@ -4404,7 +4408,7 @@ function toggleBrokerPanel() {
             const cx = Math.round(cam.midPoint.x), cy = Math.round(cam.midPoint.y);
             if (w.t === 'def') {
                 const it = window.editorItems[w.id];
-                if (it) { it.spr.setVisible(true); editorSelect(w.id); }
+                if (it) { editorSetItemVisible(it, true); editorSelect(w.id); }
             } else if (w.t === 'sign') {
                 spawnSign(game, { id: 'sign_' + Date.now().toString(36), text: w.rec.text, x: cx, y: cy, scale: w.rec.scale });
             } else {
@@ -4599,7 +4603,7 @@ function toggleBrokerPanel() {
                 if (!it) return;
                 it.spr.setPosition(o.x, o.y);
                 if (o.scale) it.spr.setScale(o.scale);
-                if (o.hidden) it.spr.setVisible(false);
+                if (o.hidden) editorSetItemVisible(it, false);
                 editorApplyItemPosition(it);
             });
             // ---- 自定义物品（gen_* 纹理按需加载）----
@@ -4653,7 +4657,7 @@ function toggleBrokerPanel() {
                 it.spr.destroy();
                 delete window.editorItems[id];
             } else {
-                it.spr.setVisible(false);
+                editorSetItemVisible(it, false);
             }
             window.editorSelectedId = null;
             editorSelBoxDraw();
@@ -4675,7 +4679,7 @@ function toggleBrokerPanel() {
                 it.spr.destroy();
                 delete window.editorItems[window.editorSelectedId];
             } else {
-                it.spr.setVisible(false);   // 默认物品仅隐藏，可恢复默认找回
+                editorSetItemVisible(it, false);   // 默认物品仅隐藏，可恢复默认找回
             }
             window.editorSelectedId = null;
             editorSelBoxDraw();
@@ -4891,6 +4895,10 @@ function toggleBrokerPanel() {
             const panel = document.getElementById('creator-panel');
             const btn = document.getElementById('creator-toggle');
             if (panel) panel.style.display = on ? 'block' : 'none';
+            (window.roomHandles || []).forEach(hd => {
+                hd.setVisible(on);
+                if (hd.input) hd.input.enabled = on;
+            });
             if (btn) { btn.style.background = on ? '#16a34a' : '#333'; btn.textContent = on ? '🛠 退出造物主' : '🛠 造物主'; }
             if (on) buildCreatorPanel();
             if (!on) { window.editorSelectedId = null; editorPanelSyncSel(); }
@@ -5154,6 +5162,92 @@ function toggleBrokerPanel() {
             if (window.wallFaceCur && window.wallFaceCur !== 'wall_face' && scene.textures.exists(window.wallFaceCur)) {
                 window.wallFaceSprites.forEach(s => s.setTexture(window.wallFaceCur));
             }
+            // ---- 房间拖拽手柄（造物主模式可见：✥移动 / ▶▼◢缩放）----
+            window.roomHandles = [];
+            const mkHandle = (x, y, w2, h2, room, mode) => {
+                const rect = scene.add.rectangle(x, y, w2, h2, 0x4ade80, 0.9)
+                    .setOrigin(0.5).setDepth(4900).setStrokeStyle(2, 0x14532d)
+                    .setVisible(!!window.editorMode);
+                rect.setInteractive({ useHandCursor: true });
+                scene.input.setDraggable(rect, true);
+                rect.input.enabled = !!window.editorMode;
+                rect.__room = room; rect.__roomMode = mode;
+                add(rect); window.roomHandles.push(rect);
+                return rect;
+            };
+            rooms.forEach(r => {
+                mkHandle(r.x + 18, r.y + 18, 24, 24, r, 'move');
+                const mvT = scene.add.text(r.x + 18, r.y + 18, '✥', {
+                    fontFamily: 'ArkPixel, monospace', fontSize: '14px', fill: '#052e16'
+                }).setOrigin(0.5).setDepth(4901).setVisible(!!window.editorMode);
+                add(mvT); window.roomHandles.push(mvT);
+                mkHandle(r.x + r.w - 10, r.y + r.h / 2, 12, 34, r, 'e');
+                mkHandle(r.x + r.w / 2, r.y + r.h - 10, 34, 12, r, 's');
+                mkHandle(r.x + r.w - 12, r.y + r.h - 12, 20, 20, r, 'se');
+            });
+        }
+        // 房间拖拽：磁吸对齐（其他房间边缘/地图边界，阈值14px；否则8px网格）
+        function roomSnap(v, targets, thr) {
+            for (const t2 of targets) if (Math.abs(v - t2) <= thr) return t2;
+            return null;
+        }
+        function handleRoomDrag(obj, dragX, dragY) {
+            const r = obj.__room, st = obj.__start;
+            if (!st) return;
+            const mode = obj.__roomMode;
+            const ddx = dragX - st.hx, ddy = dragY - st.hy;
+            const others = window.mapRooms.filter(o => o !== r);
+            const xEdges = [0, 1600].concat(others.flatMap(o => [o.x, o.x + o.w]));
+            const yEdges = [0, 1000].concat(others.flatMap(o => [o.y, o.y + o.h]));
+            const g8 = v => Math.round(v / 8) * 8;
+            const guides = [];
+            let { x, y, w, h } = st;
+            if (mode === 'move') {
+                x = st.x + ddx; y = st.y + ddy;
+                let sl = roomSnap(x, xEdges, 14), sr = roomSnap(x + w, xEdges, 14);
+                if (sl !== null) { x = sl; guides.push(['v', sl]); }
+                else if (sr !== null) { x = sr - w; guides.push(['v', sr]); }
+                else x = g8(x);
+                let stp = roomSnap(y, yEdges, 14), sb = roomSnap(y + h, yEdges, 14);
+                if (stp !== null) { y = stp; guides.push(['h', stp]); }
+                else if (sb !== null) { y = sb - h; guides.push(['h', sb]); }
+                else y = g8(y);
+            } else {
+                if (mode === 'e' || mode === 'se') {
+                    let edge = st.x + st.w + ddx;
+                    const sn = roomSnap(edge, xEdges, 14);
+                    if (sn !== null) { edge = sn; guides.push(['v', sn]); } else edge = g8(edge);
+                    w = edge - st.x;
+                }
+                if (mode === 's' || mode === 'se') {
+                    let edge = st.y + st.h + ddy;
+                    const sn = roomSnap(edge, yEdges, 14);
+                    if (sn !== null) { edge = sn; guides.push(['h', sn]); } else edge = g8(edge);
+                    h = edge - st.y;
+                }
+            }
+            w = Math.max(160, w); h = Math.max(160, h);
+            x = Math.max(0, Math.min(1600 - w, x));
+            y = Math.max(0, Math.min(1000 - h, y));
+            if (x + w > 1600) w = 1600 - x;
+            if (y + h > 1000) h = 1000 - y;
+            r.x = x; r.y = y; r.w = w; r.h = h;
+            // 预览框 + 对齐参考线
+            const g = window.roomPreviewGfx;
+            if (g) {
+                g.clear();
+                g.lineStyle(3, 0xfbbf24, 1).strokeRect(x, y, w, h);
+                g.lineStyle(1, 0x22d3ee, 0.9);
+                guides.forEach(([dir, v]) => {
+                    if (dir === 'v') g.lineBetween(v, 0, v, 1000);
+                    else g.lineBetween(0, v, 1600, v);
+                });
+            }
+        }
+        function finishRoomDrag() {
+            if (window.roomPreviewGfx) window.roomPreviewGfx.clear();
+            rebuildOfficeMap();
+            queueEditorSave();
         }
         function rebuildOfficeMap() {
             if (!game) return;
@@ -5335,19 +5429,8 @@ function toggleBrokerPanel() {
             // Random cat at (94,557)
             const catsFrameCount = (this.textures.get('cats')?.frameTotal || 1) - 1;
             const randomCatFrame = Math.floor(Math.random() * Math.max(1, catsFrameCount));
-            const cat = game.add.sprite(980, 880, 'cats', randomCatFrame).setOrigin(0.5).setScale(0.62);
-            cat.setDepth(2000); // top layer
-            cat.setInteractive({ useHandCursor: true });
-            cat.__wasInteractive = true;
-            registerEditorItem(game, 'cat_break', cat, 'keep');
-            // Expose to global for click handler
-            window.catSprite = cat;
+            // 默认猫已按 Aaron 要求移除(2026-07-17)；物品栏「猫咪」可随时再添加
             window.catsFrameCount = catsFrameCount;
-            cat.on('pointerdown', () => {
-                if (window.editorMode) return;
-                const next = Math.floor(Math.random() * window.catsFrameCount);
-                window.catSprite.setFrame(next);
-            });
 
             // Coffee machine at (659,397) - animated sprite + shadow
             const coffeeMachineShadow = this.add.image(520, 640, 'coffee_machine_shadow').setOrigin(0.5);
@@ -5674,6 +5757,7 @@ function toggleBrokerPanel() {
 
             // ---- 造物主模式：选择框 + 拖拽 + 存档加载 + 按钮 ----
             window.editorSelGfx = this.add.graphics().setDepth(5000);
+            window.roomPreviewGfx = this.add.graphics().setDepth(4950);
             window.editorSelX = this.add.text(0, 0, '✕', {
                 fontFamily: 'ArkPixel, monospace', fontSize: '15px', fill: '#fff',
                 backgroundColor: '#dc2626', padding: { x: 5, y: 2 }
@@ -5694,12 +5778,21 @@ function toggleBrokerPanel() {
                 }
             });
             this.input.on('dragstart', (pointer, obj) => {
-                if (!window.editorMode || !obj.__editorId) return;
+                if (!window.editorMode) return;
+                if (obj.__room) {
+                    window.__editorDragging = true;
+                    const r = obj.__room;
+                    obj.__start = { x: r.x, y: r.y, w: r.w, h: r.h, hx: obj.x, hy: obj.y };
+                    return;
+                }
+                if (!obj.__editorId) return;
                 window.__editorDragging = true;
                 editorSelect(obj.__editorId);
             });
             this.input.on('drag', (pointer, obj, dragX, dragY) => {
-                if (!window.editorMode || !obj.__editorId) return;
+                if (!window.editorMode) return;
+                if (obj.__room) { handleRoomDrag(obj, dragX, dragY); return; }
+                if (!obj.__editorId) return;
                 obj.x = Math.round(dragX);
                 obj.y = Math.round(dragY);
                 const it = window.editorItems[obj.__editorId];
@@ -5707,7 +5800,10 @@ function toggleBrokerPanel() {
                 editorSelBoxDraw();
                 queueEditorSave();
             });
-            this.input.on('dragend', () => { window.__editorDragging = false; });
+            this.input.on('dragend', (pointer, obj) => {
+                window.__editorDragging = false;
+                if (obj && obj.__room) finishRoomDrag();
+            });
             this.input.on('pointerdown', (pointer, currentlyOver) => {
                 if (window.editorMode && (!currentlyOver || currentlyOver.length === 0)) {
                     window.editorSelectedId = null;
@@ -6138,7 +6234,7 @@ function toggleBrokerPanel() {
         }
 
         function showCatBubble() {
-            if (!window.catSprite) return;
+            if (!window.catSprite || !window.catSprite.visible) return;
             if (window.catBubble) { window.catBubble.destroy(); window.catBubble = null; }
             const texts = getBubbleTextsByState('cat');
             const text = texts[Math.floor(Math.random() * texts.length)];
