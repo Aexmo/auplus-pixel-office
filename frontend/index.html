@@ -4974,6 +4974,10 @@ function toggleBrokerPanel() {
             this.load.image('tile_carpet', '/static/tile_carpet.png?v={{VERSION_TIMESTAMP}}');
             this.load.image('tile_tech', '/static/tile_tech.png?v={{VERSION_TIMESTAMP}}');
             this.load.image('tile_stone', '/static/tile_stone.png?v={{VERSION_TIMESTAMP}}');
+            // 二期新地砖（供房间地板下拉直接使用）
+            ['marble', 'darkwood', 'checker', 'concrete', 'grass', 'carpetblue'].forEach((k) => {
+                this.load.image('tile_' + k, '/static/tile_' + k + '.png?v={{VERSION_TIMESTAMP}}');
+            });
             this.load.image('wall_face', '/static/wall_face.png?v={{VERSION_TIMESTAMP}}');
             this.load.image('wall_cap', '/static/wall_cap.png?v={{VERSION_TIMESTAMP}}');
             this.load.image('fx_glow', '/static/fx_glow.png?v={{VERSION_TIMESTAMP}}');
