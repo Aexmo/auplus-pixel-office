@@ -266,6 +266,29 @@ def index():
     return resp
 
 
+EDITOR_PLACEMENTS_FILE = os.path.join(ROOT_DIR, "editor-placements.json")
+
+
+@app.route("/editor/placements", methods=["GET", "POST"])
+def editor_placements():
+    """造物主编辑器：读取/保存自由放置的物品位置。"""
+    if request.method == "POST":
+        try:
+            data = request.get_json(force=True) or []
+            with open(EDITOR_PLACEMENTS_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            return jsonify({"ok": True, "count": len(data)})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+    try:
+        if os.path.exists(EDITOR_PLACEMENTS_FILE):
+            with open(EDITOR_PLACEMENTS_FILE, "r", encoding="utf-8") as f:
+                return jsonify(json.load(f))
+    except Exception:
+        pass
+    return jsonify([])
+
+
 @app.route("/electron-standalone", methods=["GET"])
 def electron_standalone_page():
     """Serve Electron-only standalone frontend page."""
