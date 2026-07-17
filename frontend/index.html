@@ -3605,6 +3605,25 @@ function toggleBrokerPanel() {
             return arr[idx % arr.length];
         }
 
+        // 固定工位座位表（YIMU 老板坐老板室，其余分配开发区工位；位置后续可在造物主里调）
+        const WORKSTATION_SEATS = [
+            { x: 620, y: 250 }, { x: 1000, y: 250 }, { x: 1380, y: 250 },
+            { x: 810, y: 430 }, { x: 1190, y: 430 }, { x: 1000, y: 430 },
+            { x: 620, y: 430 }, { x: 1380, y: 430 }
+        ];
+        window.agentSeats = {};   // agentName -> 座位index（稳定，随存档持久化）
+        function assignWorkstation(agent) {
+            const nm = agent.name || agent.agentId || '';
+            if (/YIMU/i.test(nm)) return { x: 224, y: 250, boss: true };
+            if (window.agentSeats[nm] === undefined) {
+                const used = new Set(Object.values(window.agentSeats));
+                let s = 0;
+                while (used.has(s) && s < WORKSTATION_SEATS.length) s++;
+                window.agentSeats[nm] = s % WORKSTATION_SEATS.length;
+                queueEditorSave && queueEditorSave();
+            }
+            return WORKSTATION_SEATS[window.agentSeats[nm]];
+        }
         function renderGuestAgentsInScene() {
             if (!game) return;
             const visitors = getMergedVisitors();
@@ -3619,12 +3638,12 @@ function toggleBrokerPanel() {
                 const isDemo = !!agent.isDemo || (DEMO_MODE && (id === 'demo_nika' || id === 'demo_mercury' || agent.name === '尼卡' || agent.name === '水星'));
                 const area = agent.area || (agent.state === 'error' ? 'error' : (agent.state === 'idle' ? 'breakroom' : 'writing'));
 
-                const idx = area === 'breakroom' ? idxBreak++ : area === 'error' ? idxError++ : idxWrite++;
-                let p = isDemo
-                    ? randomPointInRect(getAreaRect(area))
-                    : getAreaPoint(area, idx);
-                // YIMU 老板：固定坐镇独立老板办公室
-                if (/YIMU/i.test(agent.name || '')) p = { x: 224, y: 250 };
+                // 每个 Agent 固定坐自己的工位（座位稳定分配，状态只驱动动画不驱动位置）
+                let p = assignWorkstation(agent);
+                if (!p) {
+                    const idx = area === 'breakroom' ? idxBreak++ : area === 'error' ? idxError++ : idxWrite++;
+                    p = isDemo ? randomPointInRect(getAreaRect(area)) : getAreaPoint(area, idx);
+                }
 
                 if (!guestSprites[id]) {
                     // 优先用图标：demo visitor 有专门映射
@@ -4388,6 +4407,7 @@ function toggleBrokerPanel() {
             const wallFace = (window.wallFaceCur && window.wallFaceCur !== 'wall_face') ? window.wallFaceCur : null;
             const payload = { overrides, custom, roomFloors, wallFace, signs, actors,
                 agentSkins: window.agentSkins || {},
+                agentSeats: window.agentSeats || {},
                 warehouse: window.editorWarehouse || [],
                 removedWalls: Array.from(window.removedWalls || []),
                 paletteHidden: window.paletteHidden || [],
@@ -4693,6 +4713,7 @@ function toggleBrokerPanel() {
             window.paletteHidden = data.paletteHidden || [];
             window.paletteDeleted = data.paletteDeleted || [];
             window.agentSkins = data.agentSkins || {};
+            window.agentSeats = data.agentSeats || {};
             // gen_ 地板/墙面纹理先动态加载
             const genTex = [];
             Object.values(window.roomFloorState).forEach(t => { if (t && t.indexOf('gen_') === 0) genTex.push(t); });
