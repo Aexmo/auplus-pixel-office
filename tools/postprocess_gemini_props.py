@@ -18,6 +18,15 @@ TARGET_H = {
     'fireplace': 122, 'rug_round': 88, 'window_night': 78, 'painting_land': 64,
     'noticeboard': 70, 'neon_sign': 54, 'cat_tree': 118, 'pingpong': 108,
     'partition': 98, 'safe': 78, 'clock_wall': 46, 'bookshelf_big': 130,
+    'pool_table': 112, 'foosball': 96, 'piano': 110, 'guitar_stand': 84,
+    'jukebox': 116, 'christmas_tree': 140, 'easel': 104, 'statue': 96,
+    'telescope': 100, 'grandfather_clock': 128, 'treadmill': 96, 'massage_chair': 100,
+    'reception': 104, 'sofa_l': 120, 'wardrobe': 128, 'bed_double': 124,
+    'bunk_bed': 132, 'washing_machine': 88, 'popcorn': 108, 'espresso_cart': 100,
+    'bar_shelf': 116, 'dog_bed': 64, 'pet_bowls': 40, 'bird_cage': 110,
+    'flower_vase': 84, 'hanging_plant': 80, 'cactus_set': 72, 'fountain': 104,
+    'mirror_standing': 108, 'magazine_rack': 76, 'photo_wall': 84, 'banner_flag': 72,
+    'shelf_trophies': 60, 'window_big': 92, 'rug_rect': 96, 'welcome_mat': 44,
 }
 
 

@@ -1297,8 +1297,16 @@
                 <input id="creator-sel-scale" type="range" min="0.3" max="4" step="0.05" value="1" style="flex:1;">
                 <span id="creator-sel-scale-val" style="font-size:11px; width:42px;">×1.00</span>
             </div>
-            <button id="creator-sel-delete" style="margin-top:8px; width:100%; padding:6px; font-family:ArkPixel,monospace; font-size:12px; cursor:pointer; border:1px solid #7f1d1d; border-radius:5px; background:#450a0a; color:#fca5a5;">🗑 删除该物品</button>
+            <div id="creator-sel-text-row" style="display:none; margin-top:6px;">
+                <input id="creator-sel-text" type="text" placeholder="标牌文字" style="width:100%; box-sizing:border-box; background:#1f2937; color:#f5e6c8; border:1px solid #475569; border-radius:5px; padding:5px 6px; font-family:ArkPixel,monospace; font-size:12px;">
+            </div>
+            <div style="display:flex; gap:6px; margin-top:8px;">
+                <button id="creator-sel-store" style="flex:1; padding:6px; font-family:ArkPixel,monospace; font-size:12px; cursor:pointer; border:1px solid #92742b; border-radius:5px; background:#3a2f10; color:#fbbf24;">📦 移入仓库</button>
+                <button id="creator-sel-delete" style="flex:1; padding:6px; font-family:ArkPixel,monospace; font-size:12px; cursor:pointer; border:1px solid #7f1d1d; border-radius:5px; background:#450a0a; color:#fca5a5;">🗑 删除(密码)</button>
+            </div>
         </div>
+        <div id="creator-warehouse-sec"></div>
+        <div id="creator-rooms-sec"></div>
         <div style="font-size:12px; color:#cbd5e1; margin-bottom:4px;">物品栏</div>
         <div id="creator-palette"></div>
         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
@@ -4045,6 +4053,43 @@ function toggleBrokerPanel() {
             { cat: '✨ 精品家具', key: 'prop3_noticeboard',    name: '公告板',   layer: 'wall',  type: 'decor' },
             { cat: '✨ 精品家具', key: 'prop3_neon_sign',      name: '霓虹灯牌', layer: 'wall',  type: 'decor' },
             { cat: '✨ 精品家具', key: 'prop3_clock_wall',     name: '挂钟',     layer: 'wall',  type: 'decor' },
+            // ---- ✨ 精品·二期（2026-07-17 新增批次） ----
+            { cat: '✨ 精品·二期', key: 'prop3_pool_table',     name: '台球桌',   layer: 'floor', type: 'desk' },
+            { cat: '✨ 精品·二期', key: 'prop3_foosball',       name: '桌上足球', layer: 'floor', type: 'desk' },
+            { cat: '✨ 精品·二期', key: 'prop3_piano',          name: '钢琴',     layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_guitar_stand',   name: '吉他',     layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_jukebox',        name: '点唱机',   layer: 'floor', type: 'machine' },
+            { cat: '✨ 精品·二期', key: 'prop3_christmas_tree', name: '圣诞树',   layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_easel',          name: '画架',     layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_statue',         name: '雕像',     layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_telescope',      name: '望远镜',   layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_grandfather_clock', name: '落地摆钟', layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_treadmill',      name: '跑步机',   layer: 'floor', type: 'machine' },
+            { cat: '✨ 精品·二期', key: 'prop3_massage_chair',  name: '按摩椅',   layer: 'floor', type: 'seat' },
+            { cat: '✨ 精品·二期', key: 'prop3_reception',      name: '前台',     layer: 'floor', type: 'desk' },
+            { cat: '✨ 精品·二期', key: 'prop3_sofa_l',         name: 'L型沙发',  layer: 'floor', type: 'seat' },
+            { cat: '✨ 精品·二期', key: 'prop3_wardrobe',       name: '衣柜',     layer: 'floor', type: 'storage' },
+            { cat: '✨ 精品·二期', key: 'prop3_bed_double',     name: '双人床',   layer: 'floor', type: 'seat' },
+            { cat: '✨ 精品·二期', key: 'prop3_bunk_bed',       name: '上下铺',   layer: 'floor', type: 'seat' },
+            { cat: '✨ 精品·二期', key: 'prop3_washing_machine', name: '洗衣机',  layer: 'floor', type: 'machine' },
+            { cat: '✨ 精品·二期', key: 'prop3_popcorn',        name: '爆米花机', layer: 'floor', type: 'machine' },
+            { cat: '✨ 精品·二期', key: 'prop3_espresso_cart',  name: '咖啡餐车', layer: 'floor', type: 'machine' },
+            { cat: '✨ 精品·二期', key: 'prop3_bar_shelf',      name: '酒柜',     layer: 'floor', type: 'storage' },
+            { cat: '✨ 精品·二期', key: 'prop3_dog_bed',        name: '狗窝',     layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_pet_bowls',      name: '宠物碗',   layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_bird_cage',      name: '鸟笼',     layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_flower_vase',    name: '花瓶',     layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_hanging_plant',  name: '吊篮绿植', layer: 'wall',  type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_cactus_set',     name: '仙人掌',   layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_fountain',       name: '小喷泉',   layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_mirror_standing', name: '落地镜',  layer: 'floor', type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_magazine_rack',  name: '杂志架',   layer: 'floor', type: 'storage' },
+            { cat: '✨ 精品·二期', key: 'prop3_photo_wall',     name: '照片墙',   layer: 'wall',  type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_banner_flag',    name: '三角旗',   layer: 'wall',  type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_shelf_trophies', name: '荣誉架',   layer: 'wall',  type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_window_big',     name: '日落大窗', layer: 'wall',  type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_rug_rect',       name: '花纹方毯', layer: 'under', type: 'decor' },
+            { cat: '✨ 精品·二期', key: 'prop3_welcome_mat',    name: '欢迎垫',   layer: 'under', type: 'decor' },
             // ---- 🏠 小屋复古（LPC 精选） ----
             { cat: '🏠 小屋复古', key: 'lpc_bed',         name: '单人床',   layer: 'floor', type: 'seat' },
             { cat: '🏠 小屋复古', key: 'lpc_bookshelf',   name: '复古书柜', layer: 'floor', type: 'storage' },
@@ -4146,6 +4191,7 @@ function toggleBrokerPanel() {
             if (layer === 'under') return -91;
             if (layer === 'wallpiece') return -80;    // 可摆放墙段：与真实墙体同层
             if (layer === 'wall') return -68;
+            if (layer === 'sign') return -69;
             if (layer === 'desk') return 1001;
             if (layer === 'decor') return 4;
             if (layer === 'top') return 1100;
@@ -4204,11 +4250,21 @@ function toggleBrokerPanel() {
                 (it.dispName || (pal ? pal.name : it.spr.texture.key)) + (it.custom ? '（新增）' : '');
             document.getElementById('creator-sel-scale').value = it.spr.scaleX.toFixed(2);
             document.getElementById('creator-sel-scale-val').textContent = '×' + it.spr.scaleX.toFixed(2);
+            const trow = document.getElementById('creator-sel-text-row');
+            if (trow) {
+                trow.style.display = it.sign ? 'block' : 'none';
+                if (it.sign) document.getElementById('creator-sel-text').value = it.text || '';
+            }
         }
         function buildEditorPayload() {
             const overrides = {}, custom = [];
+            const signs = [];
             Object.entries(window.editorItems).forEach(([id, it]) => {
                 const s = it.spr, o = it.orig;
+                if (it.sign) {
+                    if (s.active) signs.push({ id, text: it.text, x: s.x, y: s.y, scale: +s.scaleX.toFixed(3) });
+                    return;
+                }
                 if (it.custom) {
                     if (s.active && s.visible) {
                         custom.push({ id, key: s.texture.key, frame: it.frame, x: s.x, y: s.y,
@@ -4223,11 +4279,16 @@ function toggleBrokerPanel() {
             });
             // 房间地板 / 墙面纹理（仅记录与默认不同的）
             const roomFloors = {};
-            Object.entries(window.roomFloorSprites || {}).forEach(([rid, room]) => {
-                if (room.cur && room.cur !== room.def) roomFloors[rid] = room.cur;
+            Object.entries(window.roomFloorState || {}).forEach(([rid, tex]) => {
+                const r = window.mapRooms.find(x => x.id === rid);
+                if (tex && (!r || tex !== r.floor)) roomFloors[rid] = tex;
             });
             const wallFace = (window.wallFaceCur && window.wallFaceCur !== 'wall_face') ? window.wallFaceCur : null;
-            return { overrides, custom, roomFloors, wallFace };
+            const payload = { overrides, custom, roomFloors, wallFace, signs,
+                warehouse: window.editorWarehouse || [],
+                removedWalls: Array.from(window.removedWalls || []) };
+            if (JSON.stringify(window.mapRooms) !== JSON.stringify(DEFAULT_ROOMS)) payload.mapRooms = window.mapRooms;
+            return payload;
         }
         function queueEditorSave() {
             clearTimeout(editorSaveTimer);
@@ -4273,15 +4334,259 @@ function toggleBrokerPanel() {
             }
             return spr;
         }
-        async function loadEditorPlacements(scene) {
-            try {
-                const data = await fetch('/editor/placements').then(r => r.json());
-                if (data && !Array.isArray(data)) {
-                    window.editorPlacements = { overrides: data.overrides || {}, custom: data.custom || [],
-                        roomFloors: data.roomFloors || {}, wallFace: data.wallFace || null };
+        // ---- 标牌（可拖动/改字/新增，随存档持久化）----
+        function spawnSign(scene, rec) {
+            const txt = scene.add.text(0, 0, rec.text || '标牌', {
+                fontFamily: 'ArkPixel, monospace', fontSize: '14px',
+                fill: '#f5e6c8', stroke: '#241a10', strokeThickness: 3
+            }).setOrigin(0.5);
+            const plate = scene.add.image(0, 0, 'prop_plate').setOrigin(0.5)
+                .setDisplaySize(txt.width + 26, 30);
+            const cont = scene.add.container(rec.x, rec.y, [plate, txt]);
+            cont.setSize(Math.max(60, txt.width + 26), 32);
+            registerEditorItem(scene, rec.id, cont, 'sign', true, 'sign');
+            if (rec.scale) cont.setScale(rec.scale);
+            const it = window.editorItems[rec.id];
+            it.sign = true; it.text = rec.text || '标牌';
+            it.txtObj = txt; it.plateObj = plate;
+            it.dispName = '标牌·' + it.text;
+            return cont;
+        }
+        function editorSetSignText(it, v) {
+            it.text = v;
+            it.txtObj.setText(v);
+            it.plateObj.setDisplaySize(it.txtObj.width + 26, 30);
+            it.spr.setSize(Math.max(60, it.txtObj.width + 26), 32);
+            it.dispName = '标牌·' + v;
+            queueEditorSave();
+        }
+        function editorAddSign() {
+            const cam = game.cameras.main;
+            spawnSign(game, { id: 'sign_' + Date.now().toString(36), text: '新标牌',
+                x: Math.round(cam.midPoint.x), y: Math.round(cam.midPoint.y) });
+            editorSelect(Object.keys(window.editorItems).pop());
+            queueEditorSave();
+        }
+        // ---- 仓库（暂存不删除）----
+        window.editorWarehouse = [];
+        function editorStoreSelected() {
+            const id = window.editorSelectedId;
+            const it = window.editorItems[id];
+            if (!it) return;
+            const s = it.spr;
+            if (it.sign) {
+                window.editorWarehouse.push({ t: 'sign', rec: { text: it.text, scale: +s.scaleX.toFixed(3) }, n: it.dispName });
+                s.destroy(); delete window.editorItems[id];
+            } else if (it.custom) {
+                window.editorWarehouse.push({ t: 'custom', rec: { key: s.texture.key, frame: it.frame,
+                    scale: +s.scaleX.toFixed(3), layer: it.layer, type: it.type, n: it.dispName }, n: it.dispName || s.texture.key });
+                s.destroy(); delete window.editorItems[id];
+            } else {
+                s.setVisible(false);
+                window.editorWarehouse.push({ t: 'def', id, n: (EDITOR_PALETTE.find(p2 => p2.key === s.texture.key) || {}).name || id });
+            }
+            window.editorSelectedId = null;
+            editorSelBoxDraw(); editorPanelSyncSel();
+            renderWarehouseSection();
+            queueEditorSave();
+        }
+        function editorRestoreFromWarehouse(idx) {
+            const w = window.editorWarehouse[idx];
+            if (!w) return;
+            window.editorWarehouse.splice(idx, 1);
+            const cam = game.cameras.main;
+            const cx = Math.round(cam.midPoint.x), cy = Math.round(cam.midPoint.y);
+            if (w.t === 'def') {
+                const it = window.editorItems[w.id];
+                if (it) { it.spr.setVisible(true); editorSelect(w.id); }
+            } else if (w.t === 'sign') {
+                spawnSign(game, { id: 'sign_' + Date.now().toString(36), text: w.rec.text, x: cx, y: cy, scale: w.rec.scale });
+            } else {
+                const rec = Object.assign({}, w.rec, { id: 'c' + Date.now().toString(36) + Math.floor(Math.random() * 999), x: cx, y: cy });
+                if (rec.key.indexOf('gen_') === 0) {
+                    ensureTextureLoaded(rec.key, '/static/generated/' + rec.key + '.png').then(() => {
+                        if (game.textures.exists(rec.key)) { spawnCustomItem(game, rec); editorSelect(rec.id); queueEditorSave(); }
+                    });
+                    renderWarehouseSection(); queueEditorSave(); return;
                 }
+                spawnCustomItem(game, rec);
+                editorSelect(rec.id);
+            }
+            renderWarehouseSection();
+            queueEditorSave();
+        }
+        function renderWarehouseSection() {
+            const c = document.getElementById('creator-warehouse-sec');
+            if (!c) return;
+            c.innerHTML = '';
+            const list = window.editorWarehouse || [];
+            if (!list.length) return;
+            const head = document.createElement('div');
+            head.style.cssText = 'font-size:12px;color:#fbbf24;margin:4px 0 4px;';
+            head.textContent = '▪ 📦 仓库（' + list.length + '）';
+            c.appendChild(head);
+            list.forEach((w, i) => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:3px;';
+                row.innerHTML = '<span style="flex:1;font-size:11px;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (w.n || w.t) + '</span>';
+                const btn = document.createElement('button');
+                btn.textContent = '取出';
+                btn.style.cssText = 'padding:2px 8px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid #475569;border-radius:4px;background:#1f2937;color:#a7f3d0;';
+                btn.onclick = () => editorRestoreFromWarehouse(i);
+                row.appendChild(btn);
+                c.appendChild(row);
+            });
+        }
+        // ---- 房间布局编辑（增删房间/调整大小/换地板/墙面纹理/恢复墙体）----
+        function renderRoomLayoutSection() {
+            const c = document.getElementById('creator-rooms-sec');
+            if (!c) return;
+            c.innerHTML = '';
+            const head = document.createElement('div');
+            head.style.cssText = 'font-size:12px;color:#fbbf24;margin:4px 0 4px;';
+            head.textContent = '▪ 🏗 房间布局';
+            c.appendChild(head);
+            const gen = window.__genAssets || [];
+            const floorOpts = FLOOR_TEXTURE_OPTIONS.concat(gen.filter(g => g.kind === 'floor').map(g => [g.key, 'AI·' + g.name]));
+            const inCss = 'width:52px;background:#1f2937;color:#e5e7eb;border:1px solid #475569;border-radius:4px;padding:2px 3px;font-family:ArkPixel,monospace;font-size:11px;';
+            const selCss = 'flex:1;background:#1f2937;color:#e5e7eb;border:1px solid #475569;border-radius:4px;padding:2px 3px;font-family:ArkPixel,monospace;font-size:11px;';
+            const snap = v => Math.max(0, Math.round(v / 8) * 8);
+            window.mapRooms.forEach((r, idx) => {
+                const box = document.createElement('div');
+                box.style.cssText = 'border:1px solid #3a3a4a;border-radius:6px;padding:5px;margin-bottom:5px;background:#20202a;';
+                const l1 = document.createElement('div');
+                l1.style.cssText = 'display:flex;gap:4px;align-items:center;margin-bottom:4px;';
+                const nameIn = document.createElement('input');
+                nameIn.value = r.name;
+                nameIn.style.cssText = 'flex:1;background:#1f2937;color:#f5e6c8;border:1px solid #475569;border-radius:4px;padding:2px 4px;font-family:ArkPixel,monospace;font-size:11px;';
+                nameIn.onchange = () => { r.name = nameIn.value; rebuildOfficeMap(); queueEditorSave(); };
+                const delBtn = document.createElement('button');
+                delBtn.textContent = '删';
+                delBtn.style.cssText = 'padding:2px 7px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid #7f1d1d;border-radius:4px;background:#450a0a;color:#fca5a5;';
+                delBtn.onclick = () => {
+                    if (window.mapRooms.length <= 1) { alert('至少保留一个房间'); return; }
+                    if (!confirm('删除房间「' + r.name + '」？(房间里的物品不会被删)')) return;
+                    window.mapRooms.splice(idx, 1);
+                    rebuildOfficeMap(); queueEditorSave();
+                };
+                l1.appendChild(nameIn); l1.appendChild(delBtn);
+                box.appendChild(l1);
+                const l2 = document.createElement('div');
+                l2.style.cssText = 'display:flex;gap:3px;align-items:center;flex-wrap:wrap;';
+                [['x', 'X'], ['y', 'Y'], ['w', '宽'], ['h', '高']].forEach(([k, lab]) => {
+                    const sp = document.createElement('span');
+                    sp.style.cssText = 'font-size:10px;color:#94a3b8;';
+                    sp.textContent = lab;
+                    const inp = document.createElement('input');
+                    inp.type = 'number'; inp.step = 8; inp.value = r[k];
+                    inp.style.cssText = inCss;
+                    inp.onchange = () => {
+                        let v = snap(parseInt(inp.value) || 0);
+                        if (k === 'w' || k === 'h') v = Math.max(160, v);
+                        r[k] = v;
+                        if (r.x + r.w > 1600) r[k === 'w' ? 'w' : 'x'] = k === 'w' ? 1600 - r.x : Math.max(0, 1600 - r.w);
+                        if (r.y + r.h > 1000) r[k === 'h' ? 'h' : 'y'] = k === 'h' ? 1000 - r.y : Math.max(0, 1000 - r.h);
+                        rebuildOfficeMap(); queueEditorSave();
+                    };
+                    l2.appendChild(sp); l2.appendChild(inp);
+                });
+                box.appendChild(l2);
+                const l3 = document.createElement('div');
+                l3.style.cssText = 'display:flex;gap:4px;align-items:center;margin-top:4px;';
+                const flab = document.createElement('span');
+                flab.style.cssText = 'font-size:10px;color:#94a3b8;';
+                flab.textContent = '地板';
+                const fsel = document.createElement('select');
+                fsel.style.cssText = selCss;
+                floorOpts.forEach(([k, n]) => {
+                    const o = document.createElement('option');
+                    o.value = k; o.textContent = n;
+                    fsel.appendChild(o);
+                });
+                const curF = window.roomFloorState[r.id] || r.floor;
+                if (floorOpts.some(([k]) => k === curF)) fsel.value = curF;
+                fsel.onchange = async () => {
+                    const k = fsel.value;
+                    if (k.indexOf('gen_') === 0) await ensureTextureLoaded(k, '/static/generated/' + k + '.png');
+                    if (!game.textures.exists(k)) return;
+                    window.roomFloorState[r.id] = k;
+                    const room = window.roomFloorSprites[r.id];
+                    if (room) { room.spr.setTexture(k); room.cur = k; }
+                    queueEditorSave();
+                };
+                l3.appendChild(flab); l3.appendChild(fsel);
+                box.appendChild(l3);
+                c.appendChild(box);
+            });
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;';
+            const mkBtn = (label, fn) => {
+                const b = document.createElement('button');
+                b.textContent = label;
+                b.style.cssText = 'padding:4px 8px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid #475569;border-radius:5px;background:#1f2937;color:#e5e7eb;';
+                b.onclick = fn;
+                return b;
+            };
+            btnRow.appendChild(mkBtn('➕ 新增房间', () => {
+                window.mapRooms.push({ id: 'r' + Date.now().toString(36), name: '新房间',
+                    x: 40, y: 40, w: 320, h: 280, floor: 'tile_wood' });
+                rebuildOfficeMap(); queueEditorSave();
+            }));
+            btnRow.appendChild(mkBtn('🪧 新增标牌', () => editorAddSign()));
+            const rw = window.removedWalls.size;
+            btnRow.appendChild(mkBtn('♻️ 恢复墙体(' + rw + ')', () => {
+                window.removedWalls.clear();
+                rebuildOfficeMap(); queueEditorSave();
+            }));
+            c.appendChild(btnRow);
+            // 墙面纹理（整栋换肤）
+            const wrow = document.createElement('div');
+            wrow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px;';
+            const wlab = document.createElement('span');
+            wlab.style.cssText = 'font-size:11px;color:#cbd5e1;min-width:56px;';
+            wlab.textContent = '墙面纹理';
+            const wsel = document.createElement('select');
+            wsel.style.cssText = selCss;
+            const wallOpts = [['wall_face', '木板墙（默认）']].concat(
+                gen.filter(g => g.kind === 'wall' && g.faceKey).map(g => [g.faceKey, 'AI·' + g.name]));
+            wallOpts.forEach(([k, n]) => {
+                const o = document.createElement('option');
+                o.value = k; o.textContent = n;
+                wsel.appendChild(o);
+            });
+            if (wallOpts.some(([k]) => k === (window.wallFaceCur || 'wall_face'))) wsel.value = window.wallFaceCur || 'wall_face';
+            wsel.onchange = async () => {
+                const k = wsel.value;
+                if (k.indexOf('gen_') === 0) await ensureTextureLoaded(k, '/static/generated/' + k + '.png');
+                if (!game.textures.exists(k)) return;
+                window.wallFaceCur = k;
+                window.wallFaceSprites.forEach(sp => sp.setTexture(k));
+                queueEditorSave();
+            };
+            wrow.appendChild(wlab); wrow.appendChild(wsel);
+            c.appendChild(wrow);
+        }
+        async function loadEditorPlacements(scene) {
+            let data = null;
+            try {
+                data = await fetch('/editor/placements').then(r => r.json());
             } catch (e) { /* 首次无存档 */ }
-            Object.entries(window.editorPlacements.overrides).forEach(([id, o]) => {
+            if (!data || Array.isArray(data)) data = {};
+            window.editorPlacements = data;
+            // ---- 地图结构状态（房间/地板/墙面/被拆墙）----
+            if (Array.isArray(data.mapRooms) && data.mapRooms.length) window.mapRooms = data.mapRooms;
+            window.roomFloorState = data.roomFloors || {};
+            window.removedWalls = new Set(data.removedWalls || []);
+            window.wallFaceCur = data.wallFace || null;
+            window.editorWarehouse = data.warehouse || [];
+            // gen_ 地板/墙面纹理先动态加载
+            const genTex = [];
+            Object.values(window.roomFloorState).forEach(t => { if (t && t.indexOf('gen_') === 0) genTex.push(t); });
+            if (window.wallFaceCur && window.wallFaceCur.indexOf('gen_') === 0) genTex.push(window.wallFaceCur);
+            for (const t2 of genTex) await ensureTextureLoaded(t2, '/static/generated/' + t2 + '.png');
+            rebuildOfficeMap();
+            // ---- 物品覆盖 ----
+            Object.entries(data.overrides || {}).forEach(([id, o]) => {
                 const it = window.editorItems[id];
                 if (!it) return;
                 it.spr.setPosition(o.x, o.y);
@@ -4289,25 +4594,19 @@ function toggleBrokerPanel() {
                 if (o.hidden) it.spr.setVisible(false);
                 editorApplyItemPosition(it);
             });
-            // AI 生成素材（gen_*）：纹理按需动态加载后再摆放
-            for (const rec of (window.editorPlacements.custom || [])) {
+            // ---- 自定义物品（gen_* 纹理按需加载）----
+            for (const rec of (data.custom || [])) {
                 if (rec.key && rec.key.indexOf('gen_') === 0 && !scene.textures.exists(rec.key)) {
                     await ensureTextureLoaded(rec.key, '/static/generated/' + rec.key + '.png');
                 }
                 if (rec.key.indexOf('gen_') === 0 && !scene.textures.exists(rec.key)) continue;
                 spawnCustomItem(scene, rec);
             }
-            // 房间地板 / 墙面纹理
-            const rf = window.editorPlacements.roomFloors || {};
-            Object.entries(rf).forEach(([rid, tex]) => {
-                const room = window.roomFloorSprites[rid];
-                if (room && scene.textures.exists(tex)) { room.spr.setTexture(tex); room.cur = tex; }
-            });
-            const wf = window.editorPlacements.wallFace;
-            if (wf && scene.textures.exists(wf)) {
-                window.wallFaceSprites.forEach(s => s.setTexture(wf));
-                window.wallFaceCur = wf;
-            }
+            // ---- 标牌：有存档用存档；否则按房间生成默认标牌 ----
+            const signs = Array.isArray(data.signs) ? data.signs
+                : window.mapRooms.map(r => ({ id: 'sign_' + r.id, text: r.name, x: r.x + 96, y: r.y + 40 }));
+            signs.forEach(rec => spawnSign(scene, rec));
+            renderWarehouseSection();
         }
         function ensureTextureLoaded(key, url) {
             return new Promise((resolve) => {
@@ -4341,6 +4640,9 @@ function toggleBrokerPanel() {
         function editorDeleteSelected() {
             const it = window.editorItems[window.editorSelectedId];
             if (!it) return;
+            const pwd = prompt('永久删除需输入密码（不想删可用「移入仓库」暂存）：');
+            if (pwd === null) return;
+            if (pwd !== '3123119') { alert('密码错误，未删除'); return; }
             if (it.custom) {
                 it.spr.destroy();
                 delete window.editorItems[window.editorSelectedId];
@@ -4441,67 +4743,13 @@ function toggleBrokerPanel() {
             root.appendChild(flag);
             buildCreatorRoomSection(root, makeCell, makeGrid);
         }
-        // 「房间地板与墙面」编辑区 + 「我的生成」分组（含 AI 生成素材，异步构建）
+        // 「房间布局」编辑区 + 「我的生成」分组（含 AI 生成素材，异步构建）
         async function buildCreatorRoomSection(root, makeCell, makeGrid) {
             let gen = [];
             try { gen = await fetch('/editor/generated-list').then(r => r.json()) || []; } catch (e) {}
             window.__genAssets = gen;
-            const sec = document.createElement('div');
-            sec.innerHTML = '<div style="font-size:12px;color:#fbbf24;margin:8px 0 4px;">▪ 房间地板与墙面</div>';
-            const selCss = 'flex:1;background:#1f2937;color:#e5e7eb;border:1px solid #475569;border-radius:5px;padding:3px 4px;font-family:ArkPixel,monospace;font-size:11px;';
-            const floorOpts = FLOOR_TEXTURE_OPTIONS.concat(
-                gen.filter(g => g.kind === 'floor').map(g => [g.key, 'AI·' + g.name]));
-            Object.entries(window.roomFloorSprites || {}).forEach(([rid, room]) => {
-                const row = document.createElement('div');
-                row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px;';
-                const sel = document.createElement('select');
-                sel.style.cssText = selCss;
-                floorOpts.forEach(([k, n]) => {
-                    const o = document.createElement('option');
-                    o.value = k; o.textContent = n;
-                    sel.appendChild(o);
-                });
-                if (floorOpts.some(([k]) => k === room.cur)) sel.value = room.cur;
-                sel.onchange = async () => {
-                    const k = sel.value;
-                    if (k.indexOf('gen_') === 0) await ensureTextureLoaded(k, '/static/generated/' + k + '.png');
-                    if (game.textures.exists(k)) { room.spr.setTexture(k); room.cur = k; queueEditorSave(); }
-                };
-                const lab = document.createElement('span');
-                lab.style.cssText = 'font-size:11px;color:#cbd5e1;min-width:64px;';
-                lab.textContent = room.name;
-                row.appendChild(lab); row.appendChild(sel);
-                sec.appendChild(row);
-            });
-            // 墙面纹理（整栋墙立面换肤）
-            const wrow = document.createElement('div');
-            wrow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:6px;';
-            const wsel = document.createElement('select');
-            wsel.style.cssText = selCss;
-            const wallOpts = [['wall_face', '木板墙（默认）']].concat(
-                gen.filter(g => g.kind === 'wall' && g.faceKey).map(g => [g.faceKey, 'AI·' + g.name]));
-            const curWall = window.wallFaceCur || 'wall_face';
-            wallOpts.forEach(([k, n]) => {
-                const o = document.createElement('option');
-                o.value = k; o.textContent = n;
-                wsel.appendChild(o);
-            });
-            if (wallOpts.some(([k]) => k === curWall)) wsel.value = curWall;
-            wsel.onchange = async () => {
-                const k = wsel.value;
-                if (k.indexOf('gen_') === 0) await ensureTextureLoaded(k, '/static/generated/' + k + '.png');
-                if (game.textures.exists(k)) {
-                    window.wallFaceSprites.forEach(s => s.setTexture(k));
-                    window.wallFaceCur = k;
-                    queueEditorSave();
-                }
-            };
-            const wlab = document.createElement('span');
-            wlab.style.cssText = 'font-size:11px;color:#cbd5e1;min-width:64px;';
-            wlab.textContent = '墙面纹理';
-            wrow.appendChild(wlab); wrow.appendChild(wsel);
-            sec.appendChild(wrow);
-            root.insertBefore(sec, root.firstChild);
+            renderRoomLayoutSection();
+            renderWarehouseSection();
             // 「我的生成」分组
             if (gen.length) {
                 const head = document.createElement('div');
@@ -4588,7 +4836,7 @@ function toggleBrokerPanel() {
             loadingProgressContainer = document.getElementById('loading-progress-container');
             
             // 设置资源总数（全部首屏加载：装饰也第一时间出现）
-            totalAssets = 125;
+            totalAssets = 161;
             loadedAssets = 0;
             
             // 加载进度监听
@@ -4677,7 +4925,14 @@ function toggleBrokerPanel() {
              'cat_tree', 'clock_wall', 'coffee_table', 'fireplace', 'floor_lamp', 'fridge',
              'kitchen_counter', 'meeting_table', 'neon_sign', 'noticeboard', 'painting_land',
              'partition', 'pingpong', 'plant_big', 'printer', 'rug_round', 'safe',
-             'sofa_fabric', 'tv_console', 'vending', 'watercooler', 'window_night'].forEach((k) => {
+             'sofa_fabric', 'tv_console', 'vending', 'watercooler', 'window_night',
+             'pool_table', 'foosball', 'piano', 'guitar_stand', 'jukebox', 'christmas_tree',
+             'easel', 'statue', 'telescope', 'grandfather_clock', 'treadmill', 'massage_chair',
+             'reception', 'sofa_l', 'wardrobe', 'bed_double', 'bunk_bed', 'washing_machine',
+             'popcorn', 'espresso_cart', 'bar_shelf', 'dog_bed', 'pet_bowls', 'bird_cage',
+             'flower_vase', 'hanging_plant', 'cactus_set', 'fountain', 'mirror_standing',
+             'magazine_rack', 'photo_wall', 'banner_flag', 'shelf_trophies', 'window_big',
+             'rug_rect', 'welcome_mat'].forEach((k) => {
                 this.load.image('prop3_' + k, '/static/prop3_' + k + '.png?v={{VERSION_TIMESTAMP}}');
             });
             // 小屋复古组（LPC CC-BY-SA，署名见仓库 LPC_CREDITS.txt）
@@ -4700,71 +4955,141 @@ function toggleBrokerPanel() {
             }
         }
 
-        // ============ 像素办公室 v3：整栋连通式地图（墙体+通道+道具+光效） ============
-        // 设计参照最早版 Mountain Lodge 底图：横墙有木质立面高度，竖墙只露墙顶，
-        // 各功能区之间以墙上开口(通道)连通，无窗无门贴图。
-        function drawOfficeRooms(scene) {
+        // ============ 像素办公室 v5：数据驱动连通式地图（房间可增删/调整大小） ============
+        // 房间表 → 自动生成地板/墙体(相邻边自动开门洞)/名牌/光效；参照 Mountain Lodge 风格。
+        const DEFAULT_ROOMS = [
+            { id: 'boss',     name: '🚪 老板办公室', x: 0,    y: 0,   w: 433,  h: 450, floor: 'tile_carpet' },
+            { id: 'research', name: '🔬 调研区',     x: 0,    y: 450, w: 433,  h: 550, floor: 'tile_wood2'  },
+            { id: 'dev',      name: '💻 开发区',     x: 433,  y: 0,   w: 1167, h: 520, floor: 'tile_wood'   },
+            { id: 'break',    name: '☕ 休息区',     x: 433,  y: 520, w: 660,  h: 480, floor: 'tile_stone'  },
+            { id: 'bug',      name: '🐛 Bug 区',     x: 1093, y: 520, w: 507,  h: 260, floor: 'tile_tech'   },
+            { id: 'server',   name: '🖥 服务器区',   x: 1093, y: 780, w: 507,  h: 220, floor: 'tile_tech'   }
+        ];
+        window.mapRooms = JSON.parse(JSON.stringify(DEFAULT_ROOMS));
+        window.mapObjects = [];         // 地图结构物(地板/墙/名牌/光效)，重建时销毁
+        window.roomFloorState = {};     // roomId -> 用户改过的地板纹理
+        window.removedWalls = new Set();   // 被拆除的墙段ID
+
+        function buildOfficeMap(scene) {
             const W = scene.scale.width, H = scene.scale.height;
             const CAP_H = 16, FACE_H = 44, V_W = 18;
+            const rooms = window.mapRooms;
+            const add = (o) => { window.mapObjects.push(o); return o; };
+            add(scene.add.rectangle(W / 2, H / 2, W, H, 0x0f0f16).setDepth(-100));  // 虚空底色
 
-            // ---- 1) 地板分区（铺满整图，接缝藏在墙体下） ----
-            window.roomFloorSprites = {};   // 房间地板 tileSprite 引用（造物主可换纹理）
-            [
-                { id: 'boss',     n: '老板办公室', x: 0,    y: 0,   w: 433,  h: 450, t: 'tile_carpet' },
-                { id: 'research', n: '调研区',     x: 0,    y: 450, w: 433,  h: 550, t: 'tile_wood2'  },
-                { id: 'dev',      n: '开发区',     x: 433,  y: 0,   w: 1167, h: 520, t: 'tile_wood'   },
-                { id: 'break',    n: '休息区',     x: 433,  y: 520, w: 660,  h: 480, t: 'tile_stone'  },
-                { id: 'bug',      n: 'Bug区',      x: 1093, y: 520, w: 507,  h: 260, t: 'tile_tech'   },
-                { id: 'server',   n: '服务器区',   x: 1093, y: 780, w: 507,  h: 220, t: 'tile_tech'   }
-            ].forEach(f => {
-                const ts = scene.add.tileSprite(f.x, f.y, f.w, f.h, f.t).setOrigin(0).setDepth(-95);
-                window.roomFloorSprites[f.id] = { spr: ts, name: f.n, def: f.t, cur: f.t };
+            // ---- 地板 ----
+            window.roomFloorSprites = {};
+            window.wallFaceSprites = [];
+            rooms.forEach(r => {
+                let tex = window.roomFloorState[r.id] || r.floor;
+                if (!scene.textures.exists(tex)) tex = r.floor;
+                const ts = add(scene.add.tileSprite(r.x, r.y, r.w, r.h, tex).setOrigin(0).setDepth(-95));
+                window.roomFloorSprites[r.id] = { spr: ts, name: r.name, def: r.floor, cur: tex };
             });
-            window.wallFaceSprites = [];    // 墙立面引用（造物主可换纹理）
 
-            // ---- 2) 墙体 ----
-            // 横墙 = 墙帽 + 墙立面；竖墙 = 墙帽窄条（南端接通道时补一截立面残端）
+            // ---- 墙体绘制原语 ----
+            const wallTag = (spr, id) => {
+                spr.__wallId = id;
+                spr.setInteractive();   // 造物主模式下可点击拆除（handler 内判模式）
+                return spr;
+            };
             const hWall = (x, y, w) => {
-                scene.add.tileSprite(x, y, w, CAP_H, 'wall_cap').setOrigin(0).setDepth(-80);
-                window.wallFaceSprites.push(
-                    scene.add.tileSprite(x, y + CAP_H, w, FACE_H, 'wall_face').setOrigin(0).setDepth(-80));
+                if (w <= 2) return;
+                const id = 'wh_' + x + '_' + y + '_' + w;
+                if (window.removedWalls.has(id)) return;
+                add(wallTag(scene.add.tileSprite(x, y, w, CAP_H, 'wall_cap').setOrigin(0).setDepth(-80), id));
+                window.wallFaceSprites.push(add(wallTag(
+                    scene.add.tileSprite(x, y + CAP_H, w, FACE_H, 'wall_face').setOrigin(0).setDepth(-80), id)));
             };
-            const vWall = (x, y1, y2, endFace) => {
-                scene.add.tileSprite(x, y1, V_W, y2 - y1, 'wall_cap').setOrigin(0).setDepth(-80);
-                if (endFace) window.wallFaceSprites.push(
-                    scene.add.tileSprite(x, y2, V_W, FACE_H, 'wall_face').setOrigin(0).setDepth(-80));
+            const vWallSeg = (x, y1, y2, endFace) => {
+                if (y2 - y1 <= 2) return;
+                const id = 'wv_' + x + '_' + y1 + '_' + (y2 - y1);
+                if (window.removedWalls.has(id)) return;
+                add(wallTag(scene.add.tileSprite(x, y1, V_W, y2 - y1, 'wall_cap').setOrigin(0).setDepth(-80), id));
+                if (endFace) window.wallFaceSprites.push(add(wallTag(
+                    scene.add.tileSprite(x, y2, V_W, FACE_H, 'wall_face').setOrigin(0).setDepth(-80), id)));
             };
-            const bWall = (x, w) => {  // 底部外墙只见墙顶
-                scene.add.tileSprite(x, H - CAP_H, w, CAP_H, 'wall_cap').setOrigin(0).setDepth(-80);
+            const capStrip = (x, y, w) => {
+                if (w <= 2) return;
+                const id = 'wc_' + x + '_' + y + '_' + w;
+                if (window.removedWalls.has(id)) return;
+                add(wallTag(scene.add.tileSprite(x, y, w, CAP_H, 'wall_cap').setOrigin(0).setDepth(-80), id));
             };
-            hWall(0, 0, W);                                                 // 顶部外墙
-            hWall(0, 420, 130);   hWall(270, 420, 172);                     // 老板|调研，通道 x130-270
-            hWall(424, 490, 216); hWall(800, 490, 450); hWall(1410, 490, 190); // 开发|休息/Bug，通道 x640-800 与 x1250-1410
-            hWall(1084, 750, 206); hWall(1430, 750, 170);                   // Bug|服务器，通道 x1290-1430
-            vWall(0, 60, H, false); vWall(W - V_W, 60, H, false);           // 左右外墙
-            vWall(424, 60, 170, true);   vWall(424, 310, 420, false);       // 老板|开发，通道 y170-310
-            vWall(424, 480, 620, true);  vWall(424, 770, H - CAP_H, false); // 调研|休息，通道 y620-770
-            vWall(1084, 550, 590, true); vWall(1084, 730, H - CAP_H, false);// 休息|Bug，通道 y590-730
-            bWall(0, 740); bWall(880, W - 880);                             // 底部外墙 + 大门 x740-880
+            // 把 [a,b] 区间按相邻房间投影切分为 {a,b,shared} 片段
+            const splitEdge = (a0, b0, neighbors) => {
+                const segs = neighbors.map(o => ({ a: Math.max(a0, o.a), b: Math.min(b0, o.b) }))
+                    .filter(s => s.b > s.a).sort((p, q) => p.a - q.a);
+                const out = []; let cur = a0;
+                segs.forEach(s => {
+                    if (s.a > cur) out.push({ a: cur, b: s.a, shared: false });
+                    out.push({ a: s.a, b: s.b, shared: true });
+                    cur = Math.max(cur, s.b);
+                });
+                if (cur < b0) out.push({ a: cur, b: b0, shared: false });
+                return out;
+            };
 
-            // ---- 3) 大门地垫（可编辑，见 EDITOR_DEFAULTS） ----
-
-            // ---- 4) 房间木牌（挂在墙立面上） ----
-            [
-                ['🚪 老板办公室', 140, 40],
-                ['💻 开发区', 560, 40],
-                ['🔬 调研区', 66, 460],
-                ['☕ 休息区', 540, 530],
-                ['🐛 Bug 区', 1200, 530],
-                ['🖥 服务器区', 1210, 790]
-            ].forEach(([name, px, py]) => {
-                const txt = scene.add.text(px, py, name, {
-                    fontFamily: 'ArkPixel, monospace', fontSize: '14px',
-                    fill: '#f5e6c8', stroke: '#241a10', strokeThickness: 3
-                }).setOrigin(0.5).setDepth(-69);
-                scene.add.image(px, py, 'prop_plate').setOrigin(0.5).setDepth(-70)
-                    .setDisplaySize(txt.width + 26, 30);
+            // ---- 按房间生成墙体（相邻共享边由南侧/东侧房间负责画，自动开门洞） ----
+            rooms.forEach(r => {
+                const L = r.x, R = r.x + r.w, T = r.y, B = r.y + r.h;
+                // 顶边：墙带画在本房间内部顶端；与上方房间共享的段开门洞
+                splitEdge(L, R, rooms.filter(o => o !== r && Math.abs(o.y + o.h - T) < 1)
+                    .map(o => ({ a: o.x, b: o.x + o.w }))).forEach(p => {
+                    const len = p.b - p.a;
+                    if (p.shared && len >= 110) {
+                        const ow = Math.max(90, Math.min(150, Math.round(len * 0.35)));
+                        const oa = Math.round(p.a + (len - ow) / 2);
+                        hWall(p.a, T, oa - p.a);
+                        hWall(oa + ow, T, p.b - oa - ow);
+                    } else hWall(p.a, T, len);
+                });
+                // 底边：只画无相邻房间的段（共享段由下方房间的顶墙负责）；贴地图底且含入口点的开大门
+                splitEdge(L, R, rooms.filter(o => o !== r && Math.abs(o.y - B) < 1)
+                    .map(o => ({ a: o.x, b: o.x + o.w }))).forEach(p => {
+                    if (p.shared) return;
+                    if (Math.abs(B - H) < 1 && p.a < 880 && p.b > 740 && (p.b - p.a) >= 160) {
+                        capStrip(p.a, B - CAP_H, Math.max(p.a, 740) - p.a);
+                        capStrip(Math.min(p.b, 880), B - CAP_H, p.b - Math.min(p.b, 880));
+                    } else capStrip(p.a, B - CAP_H, p.b - p.a);
+                });
+                // 左边：与左侧房间共享的段开门洞（由右侧房间=本房间负责画）
+                splitEdge(T, B, rooms.filter(o => o !== r && Math.abs(o.x + o.w - L) < 1)
+                    .map(o => ({ a: o.y, b: o.y + o.h }))).forEach(p => {
+                    const len = p.b - p.a;
+                    if (p.shared && len >= 150) {
+                        const ow = Math.max(100, Math.min(160, Math.round(len * 0.32)));
+                        const oa = Math.round(p.a + (len - ow) / 2);
+                        vWallSeg(L, p.a, oa, true);
+                        vWallSeg(L, oa + ow, p.b, false);
+                    } else vWallSeg(L, p.a, p.b, false);
+                });
+                // 右边：只画无相邻房间的段
+                splitEdge(T, B, rooms.filter(o => o !== r && Math.abs(o.x - R) < 1)
+                    .map(o => ({ a: o.y, b: o.y + o.h }))).forEach(p => {
+                    if (!p.shared) vWallSeg(R - V_W, p.a, p.b, false);
+                });
+                // 光效（名牌已改为独立可编辑标牌，见 spawnSign）
+                const cold = (window.roomFloorState[r.id] || r.floor).indexOf('tech') >= 0;
+                add(scene.add.image(L + r.w / 2, T + r.h / 2, 'fx_glow').setOrigin(0.5).setDepth(-85)
+                    .setDisplaySize(Math.min(r.w * 0.9, 430), Math.min(r.h * 0.9, 320))
+                    .setTint(cold ? 0x9fc4ff : 0xffd9a0).setAlpha(cold ? 0.12 : 0.14)
+                    .setBlendMode(Phaser.BlendModes.ADD));
             });
+            // 墙面自定义纹理回放
+            if (window.wallFaceCur && window.wallFaceCur !== 'wall_face' && scene.textures.exists(window.wallFaceCur)) {
+                window.wallFaceSprites.forEach(s => s.setTexture(window.wallFaceCur));
+            }
+        }
+        function rebuildOfficeMap() {
+            if (!game) return;
+            window.mapObjects.forEach(o => { try { o.destroy(); } catch (e) {} });
+            window.mapObjects = [];
+            buildOfficeMap(game);
+            renderRoomLayoutSection();
+        }
+
+        function drawOfficeRooms(scene) {
+            buildOfficeMap(scene);
 
             // ---- 5/6) 挂墙 + 落地道具：全部走造物主注册表（可选中/拖动/缩放/删除） ----
             EDITOR_DEFAULTS.forEach(def => {
@@ -4773,21 +5098,14 @@ function toggleBrokerPanel() {
                 registerEditorItem(scene, def.id, spr, def.layer);
             });
 
-            // ---- 7) 暖光光效（径向光晕，加法混合） ----
-            [
-                [224, 250, 340, 0xffd9a0, 0.16],   // 老板办公室
-                [720, 260, 400, 0xffd9a0, 0.13],   // 开发区左
-                [1230, 260, 400, 0xffd9a0, 0.13],  // 开发区右
-                [224, 720, 360, 0xffe2b0, 0.14],   // 调研区
-                [760, 730, 420, 0xffc890, 0.16],   // 休息区
-                [935, 620, 220, 0xff9a50, 0.22],   // 壁炉火光
-                [1330, 640, 300, 0x9fc4ff, 0.12],  // Bug 区（冷光）
-                [1330, 880, 280, 0x9fb0ff, 0.12]   // 服务器区（冷光）
-            ].forEach(([px, py, size, tint, alpha]) => {
-                scene.add.image(px, py, 'fx_glow').setOrigin(0.5).setDepth(-85)
-                    .setDisplaySize(size, size * 0.72).setTint(tint).setAlpha(alpha)
+            // 光效已随房间自动生成（见 buildOfficeMap）；壁炉火光单独补一盏跟随壁炉
+            const fp = window.editorItems['fireplace_break'];
+            if (fp) {
+                const fpGlow = scene.add.image(fp.spr.x + 10, fp.spr.y + 40, 'fx_glow').setOrigin(0.5).setDepth(-85)
+                    .setDisplaySize(220, 160).setTint(0xff9a50).setAlpha(0.22)
                     .setBlendMode(Phaser.BlendModes.ADD);
-            });
+                fp.linked = (fp.linked || []).concat([{ spr: fpGlow, dx: 10, dy: 40 }]);
+            }
         }
 
         function create() {
@@ -5282,7 +5600,15 @@ function toggleBrokerPanel() {
             // ---- 造物主模式：选择框 + 拖拽 + 存档加载 + 按钮 ----
             window.editorSelGfx = this.add.graphics().setDepth(5000);
             this.input.on('gameobjectdown', (pointer, obj) => {
-                if (window.editorMode && obj.__editorId) editorSelect(obj.__editorId);
+                if (!window.editorMode) return;
+                if (obj.__editorId) { editorSelect(obj.__editorId); return; }
+                if (obj.__wallId) {
+                    if (confirm('拆除这段墙？（面板「♻️ 恢复墙体」可全部找回）')) {
+                        window.removedWalls.add(obj.__wallId);
+                        rebuildOfficeMap();
+                        queueEditorSave();
+                    }
+                }
             });
             this.input.on('dragstart', (pointer, obj) => {
                 if (!window.editorMode || !obj.__editorId) return;
@@ -5310,6 +5636,13 @@ function toggleBrokerPanel() {
             if (creatorToggle) creatorToggle.addEventListener('click', () => setEditorMode(!window.editorMode));
             const creatorDelBtn = document.getElementById('creator-sel-delete');
             if (creatorDelBtn) creatorDelBtn.addEventListener('click', editorDeleteSelected);
+            const creatorStoreBtn = document.getElementById('creator-sel-store');
+            if (creatorStoreBtn) creatorStoreBtn.addEventListener('click', editorStoreSelected);
+            const creatorTextIn = document.getElementById('creator-sel-text');
+            if (creatorTextIn) creatorTextIn.addEventListener('input', () => {
+                const it = window.editorItems[window.editorSelectedId];
+                if (it && it.sign) { editorSetSignText(it, creatorTextIn.value); editorSelBoxDraw(); }
+            });
             const creatorResetBtn = document.getElementById('creator-reset');
             if (creatorResetBtn) creatorResetBtn.addEventListener('click', editorResetAll);
             const creatorScale = document.getElementById('creator-sel-scale');
