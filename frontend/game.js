@@ -188,6 +188,7 @@ const BUBBLE_TEXTS = {
 };
 
 let game, star, sofa, serverroom, areas = {}, currentState = 'idle', pendingDesiredState = null, statusText, lastFetch = 0, lastBlink = 0, lastBubble = 0, targetX = 660, targetY = 170, bubble = null, typewriterText = '', typewriterTarget = '', typewriterIndex = 0, lastTypewriter = 0, syncAnimSprite = null, catBubble = null;
+let currentDetail = '';
 let isMoving = false;
 let waypoints = [];
 let lastWanderAt = 0;
@@ -696,6 +697,7 @@ function fetchStatus() {
       const stateInfo = STATES[nextState] || STATES.idle;
       const changed = (pendingDesiredState === null) && (nextState !== currentState);
       const nextLine = '[' + stateInfo.name + '] ' + (data.detail || '...');
+      currentDetail = (data.detail || '').trim();
       if (changed) {
         typewriterTarget = nextLine;
         typewriterText = '';
@@ -874,7 +876,8 @@ function showBubble() {
     anchorY = window.starWorking.y;
   }
 
-  const text = texts[Math.floor(Math.random() * texts.length)];
+  let text = (currentDetail && currentDetail.length) ? currentDetail : texts[Math.floor(Math.random() * texts.length)];
+  if (text.length > 22) text = text.slice(0, 22) + '…';
   const bubbleY = anchorY - 70;
   const bg = game.add.rectangle(anchorX, bubbleY, text.length * 10 + 20, 28, 0xffffff, 0.95);
   bg.setStrokeStyle(2, 0x000000);
@@ -935,6 +938,13 @@ function getAreaPosition(area, slotIndex) {
   return positions[idx];
 }
 
+function agentBubbleText(agent) {
+  const st = normalizeState(agent.state);
+  if (!agent.detail || st === 'idle') return '';
+  const d = String(agent.detail).trim().replace(/\s+/g, ' ');
+  return d.length > 20 ? d.slice(0, 20) + '…' : d;
+}
+
 function renderAgent(agent) {
   const agentId = agent.agentId;
   const name = agent.name || 'Agent';
@@ -990,7 +1000,19 @@ function renderAgent(agent) {
     statusDot.setStrokeStyle(2, 0x000000, alpha);
     statusDot.name = 'statusDot';
 
-    container.add([starIcon, statusDot, nameTag]);
+    // 工作详情气泡（显示 agent 当前在做什么，idle 时为空）
+    const detailTag = game.add.text(0, -54, agentBubbleText(agent), {
+      fontFamily: 'ArkPixel, monospace',
+      fontSize: '11px',
+      fill: '#000',
+      stroke: '#fff',
+      strokeThickness: 2,
+      backgroundColor: 'rgba(255,255,255,0.9)',
+      align: 'center'
+    }).setOrigin(0.5);
+    detailTag.name = 'detailTag';
+
+    container.add([starIcon, statusDot, nameTag, detailTag]);
     agents[agentId] = container;
   } else {
     // 更新 agent
@@ -1014,6 +1036,11 @@ function renderAgent(agent) {
       if (authStatus === 'rejected') dotColor = 0xef4444;
       if (authStatus === 'offline') dotColor = 0x94a3b8;
       statusDot.fillColor = dotColor;
+    }
+    // 更新工作详情气泡
+    const detailTag = container.getAt(3);
+    if (detailTag && detailTag.name === 'detailTag') {
+      detailTag.setText(agentBubbleText(agent));
     }
   }
 }

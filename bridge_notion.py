@@ -260,6 +260,11 @@ def main():
     for r in roster:
         print(f"     {r['status_emoji']} {r['name']} ({r['platform']})")
 
+    # 容错：花名册拉空 = Notion API 失败（正常至少有 YIMU 在线）→ 保留上次状态，不覆盖清空
+    if not roster:
+        print("  ⚠️ 花名册为空（疑似 Notion API 失败），保留上次 agents-state.json，不覆盖。")
+        return 0
+
     # 2. 任务池
     task_data = fetch_task_pool_agents()
     print(f"  📋 任务池有任务的 Agent: {len(task_data)}")
