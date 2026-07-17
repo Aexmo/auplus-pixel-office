@@ -1296,8 +1296,11 @@
             <button id="dressing-go" onclick="dressingGenerate()" style="padding:6px 10px; font-family:ArkPixel,monospace; font-size:12px; cursor:pointer; border:1px solid #be185d; border-radius:5px; background:#500724; color:#f9a8d4;">生成</button>
         </div>
         <div id="dressing-status" style="font-size:11px; color:#94a3b8; margin-bottom:8px;"></div>
+        <div id="dressing-preview-ctl"></div>
         <div style="font-size:12px; color:#cbd5e1; margin-bottom:4px;">角色库</div>
         <div id="dressing-list"></div>
+        <div style="font-size:12px; color:#cbd5e1; margin:8px 0 4px;">🎭 Agent 形象指派</div>
+        <div id="dressing-agents"></div>
     </div>
     <div id="creator-panel" style="display:none; position:fixed; top:calc(env(safe-area-inset-top, 0px) + 96px); right:12px; width:236px; max-height:72vh; overflow-y:auto; z-index:999998; background:rgba(20,20,28,0.96); border:2px solid #3a3a4a; border-radius:8px; padding:10px; font-family:ArkPixel,monospace; color:#e5e7eb;">
         <div style="font-size:14px; color:#4ade80; margin-bottom:6px;">🛠 造物主模式</div>
@@ -3580,6 +3583,7 @@ function toggleBrokerPanel() {
         function renderGuestAgentsInScene() {
             if (!game) return;
             const visitors = getMergedVisitors();
+            setTimeout(() => { try { visitors.forEach(a => applyAgentSkinFor(a)); } catch (e) {} }, 50);
             const seenIds = new Set();
             let idxBreak = 0, idxWrite = 0, idxError = 0;
 
@@ -4358,6 +4362,7 @@ function toggleBrokerPanel() {
             });
             const wallFace = (window.wallFaceCur && window.wallFaceCur !== 'wall_face') ? window.wallFaceCur : null;
             const payload = { overrides, custom, roomFloors, wallFace, signs, actors,
+                agentSkins: window.agentSkins || {},
                 warehouse: window.editorWarehouse || [],
                 removedWalls: Array.from(window.removedWalls || []),
                 paletteHidden: window.paletteHidden || [],
@@ -4662,6 +4667,7 @@ function toggleBrokerPanel() {
             window.editorWarehouse = data.warehouse || [];
             window.paletteHidden = data.paletteHidden || [];
             window.paletteDeleted = data.paletteDeleted || [];
+            window.agentSkins = data.agentSkins || {};
             // gen_ 地板/墙面纹理先动态加载
             const genTex = [];
             Object.values(window.roomFloorState).forEach(t => { if (t && t.indexOf('gen_') === 0) genTex.push(t); });
@@ -5024,7 +5030,7 @@ function toggleBrokerPanel() {
                 game.tweens.add({ targets: t2, y: t2.y - 34, alpha: 0, duration: 1600,
                     onComplete: () => t2.destroy() });
             }, state === 'sleeping' || state === 'sleepy' ? 2200 : 1100);
-            queueEditorSave();
+            if (!it.preview) queueEditorSave();
         }
         async function spawnActor(rec) {
             if (!(await ensureActorTextures(rec.charId))) return null;
@@ -5054,6 +5060,130 @@ function toggleBrokerPanel() {
             editorSelect(rec.id);
             queueEditorSave();
         }
+        // ---- Agent 皮肤: 给访客/老板指派角色形象，状态动画跟随真实状态 ----
+        window.agentSkins = {};   // agentName -> charId
+        const AGENT_STATE_MAP = { idle: 'idle', writing: 'busy', researching: 'busy',
+            executing: 'busy', syncing: 'happy', error: 'angry', offline: 'sleeping', sleep: 'sleeping' };
+        async function applyAgentSkinFor(agent) {
+            const gs = guestSprites[agent.agentId];
+            if (!gs || !gs.sprite || !gs.sprite.active) return;
+            const charId = window.agentSkins[agent.name];
+            if (!charId) {
+                if (gs.skinHolder) {   // 摘皮肤 → 销毁重建默认形象
+                    if (gs.skinHolder.tween) gs.skinHolder.tween.stop();
+                    if (gs.skinHolder.fxTimer) clearInterval(gs.skinHolder.fxTimer);
+                    gs.sprite.destroy(); gs.nameText.destroy();
+                    delete guestSprites[agent.agentId];
+                }
+                return;
+            }
+            if (typeof gs.sprite.setTexture !== 'function') return;
+            const mapped = AGENT_STATE_MAP[agent.state] || 'idle';
+            if (gs.skinHolder && gs.skinHolder.charId === charId && gs.skinHolder.state === mapped) return;
+            if (!(await ensureActorTextures(charId))) return;
+            const cur = guestSprites[agent.agentId];
+            if (!cur || !cur.sprite.active) return;
+            const spr = cur.sprite;
+            if (spr.anims && spr.anims.stop) spr.anims.stop();
+            if (!cur.skinHolder) cur.skinHolder = { preview: true, baseScale: 0.85 };
+            cur.skinHolder.spr = spr;
+            cur.skinHolder.charId = charId;
+            applyActorState(cur.skinHolder, mapped);
+        }
+        function renderDressingAgents() {
+            const c = document.getElementById('dressing-agents');
+            if (!c) return;
+            c.innerHTML = '';
+            let vs = [];
+            try { vs = getMergedVisitors() || []; } catch (e) {}
+            if (!vs.length) { c.innerHTML = '<div style="font-size:11px;color:#64748b;">暂无在线 Agent</div>'; return; }
+            vs.forEach(a => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px;';
+                const lab = document.createElement('span');
+                lab.style.cssText = 'flex:1;font-size:11px;color:#cbd5e1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;';
+                lab.textContent = a.name || a.agentId;
+                const sel = document.createElement('select');
+                sel.style.cssText = 'width:110px;background:#1f2937;color:#e5e7eb;border:1px solid #475569;border-radius:4px;padding:3px;font-family:ArkPixel,monospace;font-size:11px;';
+                const o0 = document.createElement('option');
+                o0.value = ''; o0.textContent = '默认形象';
+                sel.appendChild(o0);
+                (window.actorDefs || []).forEach(d => {
+                    const o = document.createElement('option');
+                    o.value = d.id; o.textContent = d.name;
+                    sel.appendChild(o);
+                });
+                sel.value = window.agentSkins[a.name] || '';
+                sel.onchange = () => {
+                    if (sel.value) window.agentSkins[a.name] = sel.value;
+                    else delete window.agentSkins[a.name];
+                    queueEditorSave();
+                    applyAgentSkinFor(Object.assign({}, a));
+                    setTimeout(() => { try { renderGuestAgentsInScene(); } catch (e) {} }, 300);
+                };
+                row.appendChild(lab); row.appendChild(sel);
+                c.appendChild(row);
+            });
+        }
+        // ---- 动画事件预览：舞台中央试演所有状态 ----
+        window.previewHolder = null;
+        function dressingPreviewClose() {
+            const h = window.previewHolder;
+            if (h) {
+                if (h.tween) h.tween.stop();
+                if (h.fxTimer) clearInterval(h.fxTimer);
+                if (h.autoTimer) clearInterval(h.autoTimer);
+                h.spr.destroy();
+                window.previewHolder = null;
+            }
+            const c = document.getElementById('dressing-preview-ctl');
+            if (c) c.innerHTML = '';
+        }
+        async function dressingPreview(charId) {
+            if (!(await ensureActorTextures(charId))) return;
+            dressingPreviewClose();
+            const cam = game.cameras.main;
+            const spr = game.add.image(Math.round(cam.midPoint.x), Math.round(cam.midPoint.y),
+                actorTexKey(charId, 'idle')).setOrigin(0.5).setDepth(4000);
+            window.previewHolder = { spr, charId, preview: true, baseScale: 1.25 };
+            applyActorState(window.previewHolder, 'idle');
+            const c = document.getElementById('dressing-preview-ctl');
+            if (!c) return;
+            c.innerHTML = '<div style="font-size:11px;color:#f9a8d4;margin:8px 0 4px;">▶ 动画预览（点状态看动画，角色在画面中央）</div>';
+            const grid = document.createElement('div');
+            grid.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:4px;';
+            ACTOR_STATES.forEach(st2 => {
+                const b = document.createElement('button');
+                b.textContent = ACTOR_STATE_CN[st2];
+                b.style.cssText = 'padding:4px 2px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid #475569;border-radius:4px;background:#1f2937;color:#e5e7eb;';
+                b.onclick = () => { if (window.previewHolder) applyActorState(window.previewHolder, st2); };
+                grid.appendChild(b);
+            });
+            c.appendChild(grid);
+            const row2 = document.createElement('div');
+            row2.style.cssText = 'display:flex;gap:5px;margin-top:5px;';
+            const auto = document.createElement('button');
+            auto.textContent = '🔁 自动轮播';
+            auto.style.cssText = 'flex:1;padding:4px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid #16a34a;border-radius:4px;background:#14532d;color:#bbf7d0;';
+            auto.onclick = () => {
+                const h = window.previewHolder;
+                if (!h) return;
+                if (h.autoTimer) { clearInterval(h.autoTimer); h.autoTimer = null; auto.textContent = '🔁 自动轮播'; return; }
+                let i = 0;
+                auto.textContent = '⏸ 停止轮播';
+                h.autoTimer = setInterval(() => {
+                    if (!window.previewHolder) return;
+                    i = (i + 1) % ACTOR_STATES.length;
+                    applyActorState(window.previewHolder, ACTOR_STATES[i]);
+                }, 2200);
+            };
+            const close = document.createElement('button');
+            close.textContent = '✕ 关闭预览';
+            close.style.cssText = 'flex:1;padding:4px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid #7f1d1d;border-radius:4px;background:#450a0a;color:#fca5a5;';
+            close.onclick = dressingPreviewClose;
+            row2.appendChild(auto); row2.appendChild(close);
+            c.appendChild(row2);
+        }
         function renderDressingList() {
             const c = document.getElementById('dressing-list');
             if (!c) return;
@@ -5063,14 +5193,20 @@ function toggleBrokerPanel() {
                 row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;border:1px solid #3a3a4a;border-radius:6px;padding:5px;background:#20202a;';
                 row.innerHTML = '<img src="/static/characters/' + def.states.idle + '" style="width:40px;height:40px;object-fit:contain;image-rendering:pixelated;">'
                     + '<span style="flex:1;font-size:12px;color:#e5e7eb;">' + def.name + '</span>';
+                const pv = document.createElement('button');
+                pv.textContent = '▶';
+                pv.title = '动画预览';
+                pv.style.cssText = 'padding:3px 7px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid #475569;border-radius:4px;background:#1f2937;color:#93c5fd;';
+                pv.onclick = () => dressingPreview(def.id);
                 const add = document.createElement('button');
                 add.textContent = '🚶 放入';
                 add.style.cssText = 'padding:3px 8px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid #16a34a;border-radius:4px;background:#14532d;color:#bbf7d0;';
                 add.onclick = () => dressingAddToScene(def.id);
-                row.appendChild(add);
+                row.appendChild(pv); row.appendChild(add);
                 c.appendChild(row);
             });
             if (!window.actorDefs.length) c.innerHTML = '<div style="font-size:11px;color:#64748b;">还没有角色，输入提示词生成第一个吧</div>';
+            renderDressingAgents();
         }
         async function dressingGenerate() {
             const inp = document.getElementById('dressing-prompt');
