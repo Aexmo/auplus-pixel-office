@@ -1317,7 +1317,7 @@
                 assetHintNotInScene: '当前场景未检测到此对象，仍可替换文件（刷新后生效）',
                 assetHintDefault: '通用素材：建议保持原图尺寸、透明通道与视觉重心一致，避免错位或失真',
                 showCoords: '显示坐标', hideCoords: '隐藏坐标', moveView: '移动视野', lockView: '锁定视野',
-                memoTitle: '昨 日 小 记', guestTitle: '访 客 列 表', officeTitle: '海辛小龙虾的办公室',
+                memoTitle: '昨 日 小 记', guestTitle: '访 客 列 表', officeTitle: 'AUPlus · Agent 办公室',
                 loadingOffice: '正在加载 Star 的像素办公室...'
             },
             en: {
@@ -1345,7 +1345,7 @@
                 assetHintNotInScene: 'This object is not detected in current scene; you can still replace file (effective after refresh)',
                 assetHintDefault: 'Generic asset: keep source size, alpha channel, and visual anchor to avoid drift/distortion',
                 showCoords: 'Show Coords', hideCoords: 'Hide Coords', moveView: 'Pan View', lockView: 'Lock View',
-                memoTitle: 'YESTERDAY NOTES', guestTitle: 'VISITOR LIST', officeTitle: 'Haixin Lobster Office',
+                memoTitle: 'YESTERDAY NOTES', guestTitle: 'VISITOR LIST', officeTitle: 'AUPlus Agent Office',
                 loadingOffice: 'Loading Star’s pixel office...'
             },
             ja: {
@@ -1373,7 +1373,7 @@
                 assetHintNotInScene: '現在のシーンでこのオブジェクトは未検出です。ファイル差し替えは可能（更新後に反映）',
                 assetHintDefault: '汎用素材：元サイズ・透過・視覚アンカーを維持し、ズレや崩れを防いでください',
                 showCoords: '座標表示', hideCoords: '座標非表示', moveView: '視点移動', lockView: '視点固定',
-                memoTitle: '昨日のメモ', guestTitle: '訪問者リスト', officeTitle: 'ハイシン・ロブスターのオフィス',
+                memoTitle: '昨日のメモ', guestTitle: '訪問者リスト', officeTitle: 'AUPlus エージェントオフィス',
                 loadingOffice: 'Star のピクセルオフィスを読み込み中...'
             }
         };
@@ -4016,59 +4016,44 @@ function toggleBrokerPanel() {
             this.load.spritesheet('guest_anim_4', '/static/guest_anim_4.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 32, frameHeight: 32 });
             this.load.spritesheet('guest_anim_5', '/static/guest_anim_5.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 32, frameHeight: 32 });
             this.load.spritesheet('guest_anim_6', '/static/guest_anim_6.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 32, frameHeight: 32 });
+            // 扩容 v2 环境贴图（地板/窗/门）
+            this.load.image('tile_wood', '/static/tile_wood.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('tile_wood2', '/static/tile_wood2.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('tile_carpet', '/static/tile_carpet.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('tile_tech', '/static/tile_tech.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('deco_window', '/static/deco_window.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('deco_door', '/static/deco_door.png?v={{VERSION_TIMESTAMP}}');
         }
 
         function drawOfficeRooms(scene) {
             const W = scene.scale.width, H = scene.scale.height;
             const ROOMS = [
-                { name: '🚪 老板办公室 · YIMU', x: 24,   y: 24,  w: 400,  h: 400, f1: 0x4a3f66, f2: 0x544a72, wall: 0x2b2340, label: 0xcdbcf5 },
-                { name: '💻 开发区',            x: 444,  y: 24,  w: 1132, h: 460, f1: 0x2f4a5e, f2: 0x37556c, wall: 0x1c3244, label: 0xbfe0f5 },
-                { name: '🔬 调研区',            x: 24,   y: 444, w: 400,  h: 480, f1: 0x2f5544, f2: 0x376250, wall: 0x1c3b2e, label: 0xbff5da },
-                { name: '☕ 休息区',            x: 444,  y: 504, w: 640,  h: 420, f1: 0x5e4a34, f2: 0x6c563d, wall: 0x3b2d1c, label: 0xf5dcb0 },
-                { name: '🐛 Bug 区',            x: 1104, y: 504, w: 472,  h: 250, f1: 0x5e3434, f2: 0x6c3d3d, wall: 0x3b1c1c, label: 0xf5b0b0 },
-                { name: '🖥 服务器区',          x: 1104, y: 774, w: 472,  h: 150, f1: 0x33334a, f2: 0x3b3b56, wall: 0x1c1c35, label: 0xb8b8f5 }
+                { name: '🚪 老板办公室 · YIMU', x: 24,   y: 24,  w: 400,  h: 400, floor: 'tile_carpet', wall: 0x2b2340, label: 0xcdbcf5 },
+                { name: '💻 开发区',            x: 444,  y: 24,  w: 1132, h: 460, floor: 'tile_wood',   wall: 0x1c3244, label: 0xbfe0f5 },
+                { name: '🔬 调研区',            x: 24,   y: 444, w: 400,  h: 480, floor: 'tile_wood',   wall: 0x1c3b2e, label: 0xbff5da },
+                { name: '☕ 休息区',            x: 444,  y: 504, w: 640,  h: 420, floor: 'tile_wood2',  wall: 0x3b2d1c, label: 0xf5dcb0 },
+                { name: '🐛 Bug 区',            x: 1104, y: 504, w: 472,  h: 250, floor: 'tile_tech',   wall: 0x3b1c1c, label: 0xf5b0b0 },
+                { name: '🖥 服务器区',          x: 1104, y: 774, w: 472,  h: 150, floor: 'tile_tech',   wall: 0x1c1c35, label: 0xb8b8f5 }
             ];
-            const g = scene.add.graphics().setDepth(-100);
-            g.fillStyle(0x0f0f16, 1); g.fillRect(0, 0, W, H);   // 走廊/地面底色
-            const TILE = 48;
+            scene.add.rectangle(W / 2, H / 2, W, H, 0x0f0f16).setDepth(-100);   // 走廊底色
             ROOMS.forEach(r => {
-                // 棋盘瓷砖地板
-                for (let y = r.y; y < r.y + r.h; y += TILE) {
-                    for (let x = r.x; x < r.x + r.w; x += TILE) {
-                        const even = ((((x - r.x) / TILE) | 0) + (((y - r.y) / TILE) | 0)) % 2 === 0;
-                        g.fillStyle(even ? r.f1 : r.f2, 1);
-                        g.fillRect(x, y, Math.min(TILE, r.x + r.w - x), Math.min(TILE, r.y + r.h - y));
-                    }
-                }
-                // 顶部墙带（深色，像一面墙）
+                // 真·瓷砖地板（平铺贴图）
+                scene.add.tileSprite(r.x, r.y, r.w, r.h, r.floor).setOrigin(0, 0).setDepth(-95);
+                // 墙：顶墙带 + 厚墙边框 + 吸顶灯光晕
+                const g = scene.add.graphics().setDepth(-90);
                 g.fillStyle(r.wall, 1); g.fillRect(r.x, r.y, r.w, 22);
-                // 墙裙高光线
-                g.fillStyle(0xffffff, 0.10); g.fillRect(r.x, r.y + 22, r.w, 3);
-                // 房间外墙边框（厚墙）
+                g.fillStyle(0xffffff, 0.10); g.fillRect(r.x, r.y + 22, r.w, 2);
                 g.lineStyle(6, r.wall, 1); g.strokeRect(r.x, r.y, r.w, r.h);
-                // 窗户（嵌在顶部墙带）
-                [0.30, 0.64].forEach(fx => {
-                    const wx = r.x + r.w * fx, wy = r.y + 3;
-                    g.fillStyle(0x8fc7ec, 1); g.fillRect(wx, wy, 56, 16);
-                    g.lineStyle(2, 0xe4f1fc, 1); g.strokeRect(wx, wy, 56, 16);
-                    g.lineBetween(wx + 28, wy, wx + 28, wy + 16);
+                g.fillStyle(0xfff2c2, 0.12); g.fillCircle(r.x + r.w * 0.5, r.y + 48, 40);
+                g.fillStyle(0xffe9a0, 1); g.fillRect(r.x + r.w * 0.5 - 14, r.y + 44, 28, 7);
+                // 真窗户贴图
+                [0.34, 0.66].forEach(fx => {
+                    scene.add.image(r.x + r.w * fx, r.y + 1, 'deco_window').setOrigin(0.5, 0).setDepth(-88).setScale(0.85);
                 });
-                // 门（底墙中央门槛 + 门口暖光）
-                const dcx = r.x + r.w * 0.5;
-                g.fillStyle(0x7a5a3a, 1); g.fillRect(dcx - 24, r.y + r.h - 8, 48, 8);
-                g.fillStyle(0xffd27a, 0.16); g.fillRect(dcx - 26, r.y + r.h - 34, 52, 26);
-                // 吸顶灯 + 光晕
-                const lcx = r.x + r.w * 0.5, lcy = r.y + 46;
-                g.fillStyle(0xfff2c2, 0.13); g.fillCircle(lcx, lcy, 44);
-                g.fillStyle(0xffe9a0, 1); g.fillRect(lcx - 15, lcy - 5, 30, 8);
-                g.lineStyle(2, 0x9a8a5a, 1); g.strokeRect(lcx - 15, lcy - 5, 30, 8);
-            });
-            // 地毯：老板桌 & 沙发下
-            g.fillStyle(0x8a6bb0, 0.30); g.fillRect(150, 250, 160, 120);   // 老板办公室地毯
-            g.fillStyle(0xb08a6b, 0.28); g.fillRect(560, 620, 300, 180);   // 休息区地毯
-            // 房间名牌（贴在墙带上）
-            ROOMS.forEach(r => {
-                scene.add.text(r.x + 14, r.y + 3, r.name, {
+                // 真门贴图（底墙中央）
+                scene.add.image(r.x + r.w * 0.5, r.y + r.h + 2, 'deco_door').setOrigin(0.5, 1).setDepth(-88).setScale(0.7);
+                // 房间名牌
+                scene.add.text(r.x + 12, r.y + 3, r.name, {
                     fontFamily: 'ArkPixel, monospace', fontSize: '15px',
                     fill: '#' + r.label.toString(16).padStart(6, '0'),
                     stroke: '#000', strokeThickness: 3
@@ -4086,7 +4071,7 @@ function toggleBrokerPanel() {
             // NOTE: coordinates are interpreted as the TOP-LEFT corner of the sprite
             const sofaShadow = this.add.image(IDLE_SOFA_ANCHOR.x, IDLE_SOFA_ANCHOR.y, 'sofa_shadow').setOrigin(0.5);
             sofaShadow.setDepth(9);
-            sofa = this.add.sprite(IDLE_SOFA_ANCHOR.x, IDLE_SOFA_ANCHOR.y, 'sofa_idle').setOrigin(0.5);
+            sofa = this.add.sprite(IDLE_SOFA_ANCHOR.x, IDLE_SOFA_ANCHOR.y, 'sofa_idle').setOrigin(0.5).setScale(0.62);
             sofa.setDepth(10);
             areas = {
                 door: { x: 800, y: 960 },
@@ -4237,7 +4222,7 @@ function toggleBrokerPanel() {
                 frameRate: 12.5,
                 repeat: -1
             });
-            const coffeeMachine = this.add.sprite(520, 640, 'coffee_machine').setOrigin(0.5);
+            const coffeeMachine = this.add.sprite(520, 640, 'coffee_machine').setOrigin(0.5).setScale(0.7);
             coffeeMachine.setDepth(99);
             coffeeMachine.anims.play('coffee_machine', true);
 
@@ -4256,12 +4241,12 @@ function toggleBrokerPanel() {
             serverroom.setFrame(0);
 
             // Desk (Star 工位, 开发区) + 更多开发区桌 + 老板桌（扩容 v2）
-            const desk = this.add.image(620, 250, 'desk_v2').setOrigin(0.5);
+            const desk = this.add.image(620, 250, 'desk_v2').setOrigin(0.5).setScale(0.68);
             desk.setDepth(1001);  // desk above starWorking
             [[1000, 250], [1380, 250], [810, 430], [1190, 430], [1000, 430]].forEach(function(d) {
-                game.add.image(d[0], d[1], 'desk_v2').setOrigin(0.5).setDepth(1001);
+                game.add.image(d[0], d[1], 'desk_v2').setOrigin(0.5).setDepth(1001).setScale(0.68);
             });
-            game.add.image(224, 300, 'desk_v2').setOrigin(0.5).setDepth(1001).setScale(1.1);
+            game.add.image(224, 320, 'desk_v2').setOrigin(0.5).setDepth(1001).setScale(0.72);
 
             // Random flower pot at (310,390), default scale 0.8 (top layer)
             const flowerFrameCount = Math.max(1, FLOWERS_FRAME_COLS * FLOWERS_FRAME_ROWS); // 动态帧数
@@ -4304,7 +4289,7 @@ function toggleBrokerPanel() {
             window.errorBugDir = 1; // 1 -> to right, -1 -> to left
             const starWorking = this.add.sprite(620, 200, 'star_working', 0).setOrigin(0.5);
             starWorking.setVisible(false);
-            starWorking.setScale(0.9);
+            starWorking.setScale(0.6);
             starWorking.setDepth(900);  // starWorking under desk so desk partially covers it
             // Store reference to starWorking for state logic
             window.starWorking = starWorking;
@@ -4326,7 +4311,7 @@ function toggleBrokerPanel() {
                 repeat: -1
             });
             }
-            syncAnimSprite = this.add.sprite(1480, 700, 'sync_anim', 0).setOrigin(0.5);
+            syncAnimSprite = this.add.sprite(1000, 862, 'sync_anim', 0).setOrigin(0.5).setScale(0.45);
             syncAnimSprite.setDepth(40);
             // default show first frame only
             syncAnimSprite.anims.stop();
