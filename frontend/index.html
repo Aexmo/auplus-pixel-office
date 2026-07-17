@@ -3955,7 +3955,7 @@ function toggleBrokerPanel() {
             loadingProgressContainer = document.getElementById('loading-progress-container');
             
             // 设置资源总数（全部首屏加载：装饰也第一时间出现）
-            totalAssets = 15;
+            totalAssets = 42;
             loadedAssets = 0;
             
             // 加载进度监听
@@ -4016,48 +4016,144 @@ function toggleBrokerPanel() {
             this.load.spritesheet('guest_anim_4', '/static/guest_anim_4.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 32, frameHeight: 32 });
             this.load.spritesheet('guest_anim_5', '/static/guest_anim_5.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 32, frameHeight: 32 });
             this.load.spritesheet('guest_anim_6', '/static/guest_anim_6.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 32, frameHeight: 32 });
-            // 扩容 v2 环境贴图（地板/窗/门）
+            // 扩容 v3 环境贴图（地板/墙体/光效）
             this.load.image('tile_wood', '/static/tile_wood.png?v={{VERSION_TIMESTAMP}}');
             this.load.image('tile_wood2', '/static/tile_wood2.png?v={{VERSION_TIMESTAMP}}');
             this.load.image('tile_carpet', '/static/tile_carpet.png?v={{VERSION_TIMESTAMP}}');
             this.load.image('tile_tech', '/static/tile_tech.png?v={{VERSION_TIMESTAMP}}');
-            this.load.image('deco_window', '/static/deco_window.png?v={{VERSION_TIMESTAMP}}');
-            this.load.image('deco_door', '/static/deco_door.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('tile_stone', '/static/tile_stone.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('wall_face', '/static/wall_face.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('wall_cap', '/static/wall_cap.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('fx_glow', '/static/fx_glow.png?v={{VERSION_TIMESTAMP}}');
+            // v3 像素道具集
+            ['bookshelf', 'whiteboard', 'pinboard', 'watercooler', 'vending', 'fridge',
+             'kitchen', 'printer', 'meeting_table', 'rug', 'clock', 'tv', 'cabinet',
+             'boxes', 'fireplace', 'caution', 'trophy', 'mat', 'plate'].forEach((k) => {
+                this.load.image('prop_' + k, '/static/prop_' + k + '.png?v={{VERSION_TIMESTAMP}}');
+            });
         }
 
+        // ============ 像素办公室 v3：整栋连通式地图（墙体+通道+道具+光效） ============
+        // 设计参照最早版 Mountain Lodge 底图：横墙有木质立面高度，竖墙只露墙顶，
+        // 各功能区之间以墙上开口(通道)连通，无窗无门贴图。
         function drawOfficeRooms(scene) {
             const W = scene.scale.width, H = scene.scale.height;
-            const ROOMS = [
-                { name: '🚪 老板办公室 · YIMU', x: 24,   y: 24,  w: 400,  h: 400, floor: 'tile_carpet', wall: 0x2b2340, label: 0xcdbcf5 },
-                { name: '💻 开发区',            x: 444,  y: 24,  w: 1132, h: 460, floor: 'tile_wood',   wall: 0x1c3244, label: 0xbfe0f5 },
-                { name: '🔬 调研区',            x: 24,   y: 444, w: 400,  h: 480, floor: 'tile_wood',   wall: 0x1c3b2e, label: 0xbff5da },
-                { name: '☕ 休息区',            x: 444,  y: 504, w: 640,  h: 420, floor: 'tile_wood2',  wall: 0x3b2d1c, label: 0xf5dcb0 },
-                { name: '🐛 Bug 区',            x: 1104, y: 504, w: 472,  h: 250, floor: 'tile_tech',   wall: 0x3b1c1c, label: 0xf5b0b0 },
-                { name: '🖥 服务器区',          x: 1104, y: 774, w: 472,  h: 150, floor: 'tile_tech',   wall: 0x1c1c35, label: 0xb8b8f5 }
-            ];
-            scene.add.rectangle(W / 2, H / 2, W, H, 0x0f0f16).setDepth(-100);   // 走廊底色
-            ROOMS.forEach(r => {
-                // 真·瓷砖地板（平铺贴图）
-                scene.add.tileSprite(r.x, r.y, r.w, r.h, r.floor).setOrigin(0, 0).setDepth(-95);
-                // 墙：顶墙带 + 厚墙边框 + 吸顶灯光晕
-                const g = scene.add.graphics().setDepth(-90);
-                g.fillStyle(r.wall, 1); g.fillRect(r.x, r.y, r.w, 22);
-                g.fillStyle(0xffffff, 0.10); g.fillRect(r.x, r.y + 22, r.w, 2);
-                g.lineStyle(6, r.wall, 1); g.strokeRect(r.x, r.y, r.w, r.h);
-                g.fillStyle(0xfff2c2, 0.12); g.fillCircle(r.x + r.w * 0.5, r.y + 48, 40);
-                g.fillStyle(0xffe9a0, 1); g.fillRect(r.x + r.w * 0.5 - 14, r.y + 44, 28, 7);
-                // 真窗户贴图
-                [0.34, 0.66].forEach(fx => {
-                    scene.add.image(r.x + r.w * fx, r.y + 1, 'deco_window').setOrigin(0.5, 0).setDepth(-88).setScale(0.85);
-                });
-                // 真门贴图（底墙中央）
-                scene.add.image(r.x + r.w * 0.5, r.y + r.h + 2, 'deco_door').setOrigin(0.5, 1).setDepth(-88).setScale(0.7);
-                // 房间名牌
-                scene.add.text(r.x + 12, r.y + 3, r.name, {
-                    fontFamily: 'ArkPixel, monospace', fontSize: '15px',
-                    fill: '#' + r.label.toString(16).padStart(6, '0'),
-                    stroke: '#000', strokeThickness: 3
-                }).setOrigin(0, 0).setDepth(-79);
+            const CAP_H = 16, FACE_H = 44, V_W = 18;
+
+            // ---- 1) 地板分区（铺满整图，接缝藏在墙体下） ----
+            [
+                { x: 0,    y: 0,   w: 433,  h: 450, t: 'tile_carpet' },  // 老板办公室
+                { x: 0,    y: 450, w: 433,  h: 550, t: 'tile_wood2'  },  // 调研区
+                { x: 433,  y: 0,   w: 1167, h: 520, t: 'tile_wood'   },  // 开发区
+                { x: 433,  y: 520, w: 660,  h: 480, t: 'tile_stone'  },  // 休息区
+                { x: 1093, y: 520, w: 507,  h: 260, t: 'tile_tech'   },  // Bug 区
+                { x: 1093, y: 780, w: 507,  h: 220, t: 'tile_tech'   }   // 服务器区
+            ].forEach(f => scene.add.tileSprite(f.x, f.y, f.w, f.h, f.t).setOrigin(0).setDepth(-95));
+
+            // ---- 2) 墙体 ----
+            // 横墙 = 墙帽 + 墙立面；竖墙 = 墙帽窄条（南端接通道时补一截立面残端）
+            const hWall = (x, y, w) => {
+                scene.add.tileSprite(x, y, w, CAP_H, 'wall_cap').setOrigin(0).setDepth(-80);
+                scene.add.tileSprite(x, y + CAP_H, w, FACE_H, 'wall_face').setOrigin(0).setDepth(-80);
+            };
+            const vWall = (x, y1, y2, endFace) => {
+                scene.add.tileSprite(x, y1, V_W, y2 - y1, 'wall_cap').setOrigin(0).setDepth(-80);
+                if (endFace) scene.add.tileSprite(x, y2, V_W, FACE_H, 'wall_face').setOrigin(0).setDepth(-80);
+            };
+            const bWall = (x, w) => {  // 底部外墙只见墙顶
+                scene.add.tileSprite(x, H - CAP_H, w, CAP_H, 'wall_cap').setOrigin(0).setDepth(-80);
+            };
+            hWall(0, 0, W);                                                 // 顶部外墙
+            hWall(0, 420, 130);   hWall(270, 420, 172);                     // 老板|调研，通道 x130-270
+            hWall(424, 490, 216); hWall(800, 490, 450); hWall(1410, 490, 190); // 开发|休息/Bug，通道 x640-800 与 x1250-1410
+            hWall(1084, 750, 206); hWall(1430, 750, 170);                   // Bug|服务器，通道 x1290-1430
+            vWall(0, 60, H, false); vWall(W - V_W, 60, H, false);           // 左右外墙
+            vWall(424, 60, 170, true);   vWall(424, 310, 420, false);       // 老板|开发，通道 y170-310
+            vWall(424, 480, 620, true);  vWall(424, 770, H - CAP_H, false); // 调研|休息，通道 y620-770
+            vWall(1084, 550, 590, true); vWall(1084, 730, H - CAP_H, false);// 休息|Bug，通道 y590-730
+            bWall(0, 740); bWall(880, W - 880);                             // 底部外墙 + 大门 x740-880
+
+            // ---- 3) 大门地垫 ----
+            scene.add.image(810, H - 28, 'prop_mat').setOrigin(0.5).setDepth(-92);
+
+            // ---- 4) 房间木牌（挂在墙立面上） ----
+            [
+                ['🚪 老板办公室', 140, 40],
+                ['💻 开发区', 560, 40],
+                ['🔬 调研区', 66, 460],
+                ['☕ 休息区', 540, 530],
+                ['🐛 Bug 区', 1200, 530],
+                ['🖥 服务器区', 1210, 790]
+            ].forEach(([name, px, py]) => {
+                const txt = scene.add.text(px, py, name, {
+                    fontFamily: 'ArkPixel, monospace', fontSize: '14px',
+                    fill: '#f5e6c8', stroke: '#241a10', strokeThickness: 3
+                }).setOrigin(0.5).setDepth(-69);
+                scene.add.image(px, py, 'prop_plate').setOrigin(0.5).setDepth(-70)
+                    .setDisplaySize(txt.width + 26, 30);
+            });
+
+            // ---- 5) 挂墙道具 ----
+            [
+                ['prop_trophy',     310, 54],   // 老板室奖杯架
+                ['prop_clock',      374, 40],   // 老板室挂钟
+                ['prop_whiteboard', 1120, 48],  // 开发区白板
+                ['prop_tv',        1270, 46],   // 开发区数据看板
+                ['prop_clock',     1000, 40],   // 开发区挂钟
+                ['prop_pinboard',   300, 462],  // 调研区公告板
+                ['prop_clock',      640, 532],  // 休息区挂钟
+                ['prop_whiteboard',1480, 534]   // Bug 区白板
+            ].forEach(([k, px, py]) => {
+                scene.add.image(px, py, k).setOrigin(0.5).setDepth(-68);
+            });
+
+            // ---- 6) 落地道具 ----
+            // 地面铺垫层（地毯）
+            scene.add.image(224, 350, 'prop_rug').setOrigin(0.5).setDepth(-91);
+            scene.add.image(760, 810, 'prop_rug').setOrigin(0.5).setDepth(-91).setScale(1.15);
+            [
+                // 老板办公室
+                ['prop_bookshelf',   72, 152, 5],
+                ['prop_cabinet',    392, 244, 6],
+                // 开发区
+                ['prop_boxes',      478, 446, 6],
+                ['prop_printer',   1520, 190, 6],
+                ['prop_watercooler',1544, 268, 6],
+                ['prop_cabinet',   1522, 350, 6],
+                // 调研区
+                ['prop_bookshelf',   62, 582, 5],
+                ['prop_meeting_table', 222, 856, 6],
+                ['prop_cabinet',    392, 578, 6],
+                // 休息区
+                ['prop_vending',   1046, 758, 6],
+                ['prop_kitchen',    646, 582, 6],
+                ['prop_fridge',     752, 574, 6],
+                ['prop_fireplace',  922, 566, 5],
+                ['prop_watercooler',1036, 628, 6],
+                // Bug 区
+                ['prop_caution',   1140, 604, 6],
+                ['prop_boxes',     1520, 700, 6],
+                // 服务器区
+                ['prop_cabinet',   1160, 892, 6],
+                ['prop_boxes',     1512, 908, 6]
+            ].forEach(([k, px, py, dep]) => {
+                scene.add.image(px, py, k).setOrigin(0.5).setDepth(dep);
+            });
+
+            // ---- 7) 暖光光效（径向光晕，加法混合） ----
+            [
+                [224, 250, 340, 0xffd9a0, 0.16],   // 老板办公室
+                [720, 260, 400, 0xffd9a0, 0.13],   // 开发区左
+                [1230, 260, 400, 0xffd9a0, 0.13],  // 开发区右
+                [224, 720, 360, 0xffe2b0, 0.14],   // 调研区
+                [760, 730, 420, 0xffc890, 0.16],   // 休息区
+                [935, 620, 220, 0xff9a50, 0.22],   // 壁炉火光
+                [1330, 640, 300, 0x9fc4ff, 0.12],  // Bug 区（冷光）
+                [1330, 880, 280, 0x9fb0ff, 0.12]   // 服务器区（冷光）
+            ].forEach(([px, py, size, tint, alpha]) => {
+                scene.add.image(px, py, 'fx_glow').setOrigin(0.5).setDepth(-85)
+                    .setDisplaySize(size, size * 0.72).setTint(tint).setAlpha(alpha)
+                    .setBlendMode(Phaser.BlendModes.ADD);
             });
         }
 
@@ -4118,9 +4214,9 @@ function toggleBrokerPanel() {
             sofa.anims.stop();
             sofa.setTexture('sofa_idle');
 
-            // 加像素风小牌匾：海辛小龙虾的办公室
+            // 加像素风牌匾：挂在顶部外墙立面正中（参照 Mountain Lodge 招牌）
             const plaqueX = config.width / 2;
-            const plaqueY = config.height - 36;
+            const plaqueY = 40;
             const plaqueBg = game.add.rectangle(plaqueX, plaqueY, 420, 44, 0x5d4037);
             plaqueBg.setStrokeStyle(3, 0x3e2723);
             const plaqueText = game.add.text(plaqueX, plaqueY, t('officeTitle'), {
@@ -4142,7 +4238,7 @@ function toggleBrokerPanel() {
             // Random plant at (565,178) (frame 0-15, 160x160 each)
             const plantFrameCount = 16;
             const randomPlantFrame = Math.floor(Math.random() * plantFrameCount);
-            const plant = game.add.sprite(380, 150, 'plants', randomPlantFrame).setOrigin(0.5);
+            const plant = game.add.sprite(380, 150, 'plants', randomPlantFrame).setOrigin(0.5).setScale(0.75);
             plant.setDepth(5);
             plant.setInteractive({ useHandCursor: true });
             // Expose to global for click handler
@@ -4156,7 +4252,7 @@ function toggleBrokerPanel() {
 
             // Random plant at (230,185) (frame 0-15, 160x160 each)
             const plant2Frame = Math.floor(Math.random() * plantFrameCount);
-            const plant2 = game.add.sprite(1040, 570, 'plants', plant2Frame).setOrigin(0.5);
+            const plant2 = game.add.sprite(560, 880, 'plants', plant2Frame).setOrigin(0.5).setScale(0.75);
             plant2.setDepth(5);
             plant2.setInteractive({ useHandCursor: true });
             // Expose to global for click handler
@@ -4169,7 +4265,7 @@ function toggleBrokerPanel() {
 
             // Random plant at (977,496) (frame 0-15, 160x160 each)
             const plant3Frame = Math.floor(Math.random() * plantFrameCount);
-            const plant3 = game.add.sprite(370, 530, 'plants', plant3Frame).setOrigin(0.5);
+            const plant3 = game.add.sprite(310, 555, 'plants', plant3Frame).setOrigin(0.5).setScale(0.75);
             plant3.setDepth(5);
             plant3.setInteractive({ useHandCursor: true });
             // Expose to global for click handler
@@ -4183,7 +4279,7 @@ function toggleBrokerPanel() {
             // Random poster at (252,66) (random frame from spritesheet)
             const postersFrameCount = (this.textures.get('posters')?.frameTotal || 1) - 1;
             const randomPosterFrame = Math.floor(Math.random() * Math.max(1, postersFrameCount));
-            const poster = game.add.sprite(252, 66, 'posters', randomPosterFrame).setOrigin(0.5);
+            const poster = game.add.sprite(240, 92, 'posters', randomPosterFrame).setOrigin(0.5).setScale(0.7);
             poster.setDepth(4);
             poster.setInteractive({ useHandCursor: true });
             // Expose to global for click handler
@@ -4198,7 +4294,7 @@ function toggleBrokerPanel() {
             // Random cat at (94,557)
             const catsFrameCount = (this.textures.get('cats')?.frameTotal || 1) - 1;
             const randomCatFrame = Math.floor(Math.random() * Math.max(1, catsFrameCount));
-            const cat = game.add.sprite(980, 880, 'cats', randomCatFrame).setOrigin(0.5);
+            const cat = game.add.sprite(980, 880, 'cats', randomCatFrame).setOrigin(0.5).setScale(0.62);
             cat.setDepth(2000); // top layer
             cat.setInteractive({ useHandCursor: true });
             // Expose to global for click handler
