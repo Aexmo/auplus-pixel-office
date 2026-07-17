@@ -3615,7 +3615,7 @@ function toggleBrokerPanel() {
         ];
         window.agentSeats = {};   // agentName -> 座位index（稳定，随存档持久化）
         // 坐电脑后: 居中,脸中线约在显示器顶(半张脸露屏幕上方),身体被显示器盖住
-        const DESK_SIT_DY = -11;  // 脚点相对桌心(负=下移到桌心下方,让脸露在显示器顶)
+        const DESK_SIT_DY = 9;    // 脚点相对桌心上移量(上移让眼睛露在显示器顶上方)
         const DESK_SIT_DX = 0;    // 居中对准显示器
         // 动态识别所有"可见的"办公桌(原始或用户自己摆的custom desk_v2都算),按位置排序
         function getVisibleDesks() {
