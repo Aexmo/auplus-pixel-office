@@ -5157,9 +5157,11 @@ function toggleBrokerPanel() {
             if (!cur || !cur.sprite.active) return;
             const spr = cur.sprite;
             if (spr.anims && spr.anims.stop) spr.anims.stop();
-            if (!cur.skinHolder) cur.skinHolder = { preview: true, baseScale: 0.85 };
+            if (!cur.skinHolder) cur.skinHolder = { preview: true, baseScale: window.AGENT_SKIN_SCALE || 0.5 };
+            cur.skinHolder.baseScale = window.AGENT_SKIN_SCALE || 0.5;   // 工位角色缩小,可调
             cur.skinHolder.spr = spr;
             cur.skinHolder.charId = charId;
+            spr.setOrigin(0.5, 1);   // 脚对齐工位点
             applyActorState(cur.skinHolder, mapped);
         }
         function renderDressingAgents() {
@@ -5335,12 +5337,8 @@ function toggleBrokerPanel() {
             const btn = document.getElementById('dressing-go');
             const word = (document.getElementById('dressing-prompt').value || '').trim();
             if (!word) { st.textContent = '请先输入动物名'; return; }
-            // 已有角色时，再抽卡消耗整容液
+            // 开发阶段不限制抽卡(整容液不拦截)
             const isFirst = !(window.actorDefs && window.actorDefs.length);
-            if (!isFirst && window.economy && (window.economy.potions || 0) < 1) {
-                st.textContent = '🧪 没有整容液了！去商店用积分买一瓶再抽卡';
-                return;
-            }
             btn.disabled = true;
             st.textContent = '🎲 抽卡中…生成表情头';
             try {

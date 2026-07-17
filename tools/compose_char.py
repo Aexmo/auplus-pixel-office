@@ -32,20 +32,27 @@ def compose_frame(body, state, f, head_img, rig=None):
     if not anc or not os.path.exists(rig_path):
         return None
     bodyimg = Image.open(rig_path).convert('RGBA')
-    # 头宽 = 蛋头宽 ×1.28 (更大以完全覆盖)
     hw = int(anc['w'] * 1.22)
     hh = int(head_img.height * hw / head_img.width)
     head2 = head_img.resize((hw, hh), Image.NEAREST)
-    pad = max(0, hh - anc['cy'] + 24)
+    pad = max(0, hh)
     cv = Image.new('RGBA', (max(bodyimg.width, hw) + 30, bodyimg.height + pad), (0, 0, 0, 0))
     bx = (cv.width - bodyimg.width) // 2
     by = pad
     cv.alpha_composite(bodyimg, (bx, by))
-    acx, acy = bx + anc['cx'], by + anc['cy']
-    hx = acx - hw // 2
-    # 头底沉到蛋头中心下方 55% 处 → 下巴压到脖子/肩，蛋头彻底被盖
-    hy = int(acy + anc['h'] * 0.62) - hh
-    cv.alpha_composite(head2, (hx, hy))
+    acx = bx + anc['cx']
+    # 检测去头身体在锚点x附近的最高不透明行(=领口/肩顶)，让头下巴重叠进去→必连接
+    bpx = bodyimg.load(); bw, bh = bodyimg.size
+    xL = max(0, anc['cx'] - anc['w'] // 3); xR = min(bw, anc['cx'] + anc['w'] // 3)
+    collar_top = None
+    for yy in range(bh):
+        if any(bpx[xx, yy][3] > 60 for xx in range(xL, xR)):
+            collar_top = yy; break
+    if collar_top is None:
+        collar_top = anc['cy'] + anc['h'] // 2
+    overlap = max(16, int(hh * 0.16))   # 头底沉入领口的重叠量
+    hy = (by + collar_top + overlap) - hh
+    cv.alpha_composite(head2, (acx - hw // 2, hy))
     bb = cv.getbbox()
     return cv.crop(bb) if bb else cv
 

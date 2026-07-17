@@ -502,17 +502,17 @@ def editor_generated_delete(key):
 CHARACTERS_FILE = os.path.join(ROOT_DIR, "characters.json")
 BODY_RIG_FILE = os.path.join(str(FRONTEND_PATH), "characters", "body_rig.json")
 CHAR_STATE_LIST = ['idle', 'busy', 'angry', 'happy', 'sad', 'eating', 'playing', 'sleepy', 'sleeping']
-# 9 状态 → 5 表情头(换头架构: 头表情跟随状态)
-STATE_TO_EXPR = {
-    'idle': 'normal', 'busy': 'normal', 'playing': 'happy', 'happy': 'happy',
-    'angry': 'angry', 'sad': 'sad', 'eating': 'happy', 'sleepy': 'sleepy', 'sleeping': 'sleepy',
-}
-EXPR_DESC = {
-    'normal':  'quirky goofy neutral face with a slightly derpy off-kilter look, eyes a touch uneven, subtly funny',
-    'happy':   'EXPLOSIVELY joyful face, huge wide-open goofy grin, eyes squeezed into happy arcs or huge sparkly stars, tongue maybe out, over-the-top delighted',
-    'angry':   'COMICALLY furious face, giant angry cartoon frown, one eye twitching, veins/steam, teeth bared in a ridiculous rage, over-the-top mad',
-    'sad':     'MELODRAMATICALLY sad face, enormous teary waterfall eyes, super wobbly exaggerated frown, absurdly pitiful crybaby look',
-    'sleepy':  'ULTRA sleepy derpy face, eyes rolled half-shut and crossed, huge yawn or drool, big snot bubble, hilariously out of it',
+# 9 状态各一个独立且夸张搞笑的表情(换头架构: 每状态专属表情头，互不重复)
+STATE_EXPR = {
+    'idle':     'a goofy dopey relaxed derp face, eyes slightly cross-eyed and uneven, dumb little content smile, subtly funny',
+    'busy':     'an intensely focused determined face, tongue biting in concentration, googly stressed eyes, a big sweat drop, comically frazzled',
+    'angry':    'a COMICALLY explosive furious face, popping angry veins, steam bursting from ears, teeth bared, one eye twitching, ridiculous over-the-top rage',
+    'happy':    'an EXPLOSIVELY joyful face, gigantic open goofy grin, eyes turned into huge sparkling stars or happy arcs, tongue flopping out, ecstatic',
+    'sad':      'a MELODRAMATIC crying face, enormous glistening waterfall tears streaming, super wobbly quivering frown, absurdly pitiful crybaby look',
+    'eating':   'a blissful gluttonous face, cheeks HUGELY stuffed and bulging with food, tongue licking lips, half-closed food-coma eyes, drooling',
+    'playing':  'a mischievous wild playful face, big cheeky grin with tongue stuck out sideways, one eye winking, up-to-no-good goofy expression',
+    'sleepy':   'an ULTRA drowsy derpy face, eyes half-lidded and crossed, gigantic yawn wide open, drool dripping, hilariously out of it',
+    'sleeping': 'a fast-asleep face, eyes closed in happy curves, a big snot/sleep bubble from the nose, utterly zonked blissful expression',
 }
 # 表情人格池(个性层): 不指定则随机抽 → 同种动物也各不相同
 PERSONALITY_POOL = [
@@ -535,7 +535,9 @@ def _egg_is(px):
 
 
 def _compose_head_body(rig_path, anchor, head_img):
-    """去头身体 + 动物头 → 完整帧(头×1.22,下巴压到肩,连接身体不留颈部空隙)"""
+    """去头身体 + 动物头 → 完整帧
+    检测去头身体在锚点x附近的领口/肩顶，让头下巴重叠进去 → 任何姿势都头身连接，无空隙。
+    """
     from PIL import Image as _Img
     body = _Img.open(rig_path).convert("RGBA")
     hw = int(anchor['w'] * 1.22)
@@ -545,10 +547,21 @@ def _compose_head_body(rig_path, anchor, head_img):
     cv = _Img.new("RGBA", (max(body.width, hw) + 30, body.height + pad), (0, 0, 0, 0))
     bx = (cv.width - body.width) // 2
     cv.alpha_composite(body, (bx, pad))
-    acx, acy = bx + anchor['cx'], pad + anchor['cy']
-    hx = acx - hw // 2
-    hy = int(acy + anchor['h'] * 0.62) - hh   # 下巴沉到肩，头身连接
-    cv.alpha_composite(head2, (hx, hy))
+    acx = bx + anchor['cx']
+    # 领口检测: 锚点x附近去头身体的最高不透明行 = 肩顶
+    bpx = body.load(); bw, bh = body.size
+    xL = max(0, anchor['cx'] - anchor['w'] // 3)
+    xR = min(bw, anchor['cx'] + anchor['w'] // 3)
+    collar_top = None
+    for yy in range(bh):
+        if any(bpx[xx, yy][3] > 60 for xx in range(xL, xR)):
+            collar_top = yy
+            break
+    if collar_top is None:
+        collar_top = anchor['cy'] + anchor['h'] // 2
+    overlap = max(16, int(hh * 0.16))
+    hy = (pad + collar_top + overlap) - hh
+    cv.alpha_composite(head2, (acx - hw // 2, hy))
     bb = cv.getbbox()
     return cv.crop(bb) if bb else cv
 
@@ -601,38 +614,42 @@ def _char_worker(job_id, char_id, name, prompt_word, gender, personality, mode, 
         if meme_ref:
             core += f", inspired by the famous {meme_ref} meme style"
 
-        # mode A(固定表情/表情包): 只出 normal 头，全状态复用
-        # mode B(多表情): 出 5 个表情头
-        exprs = ['normal'] if mode == 'single' else ['normal', 'happy', 'angry', 'sad', 'sleepy']
+        # mode single(固定表情包): 只出 1 个头全状态复用
+        # mode multi(多表情): 9 状态各出 1 个独立夸张表情头
+        gen_states = ['idle'] if mode == 'single' else CHAR_STATE_LIST
         with _char_lock:
-            _char_jobs[job_id]["total"] = len(exprs)
+            _char_jobs[job_id]["total"] = len(gen_states)
 
         heads = {}
-        for i, expr in enumerate(exprs):
-            face = EXPR_DESC[expr] if mode != 'single' else "the character's signature expression"
-            ref = os.path.join(char_dir, f"tmp_{char_id}_normal.png") if (expr != 'normal' and 'normal' in heads) else style_ref
+        base_head_path = None
+        for i, st in enumerate(gen_states):
+            face = STATE_EXPR[st] if mode != 'single' else "the character's signature funny expression"
+            ref = base_head_path or style_ref
             prompt = (
                 "Reference image: " + ("pixel style benchmark." if ref == style_ref else
-                    "THIS EXACT character head. Keep identical design/colors/species, change ONLY the facial expression.")
+                    "THIS EXACT character head. Keep identical design/colors/species/style, change ONLY the facial expression.")
                 + f" Create ONLY THE HEAD of a {prompt_word} mascot: a big round HEAD with face, NO body, NO neck. "
                 + f"Art style: {core}. Facial expression: {face}. "
+                + "Make the expression exaggerated and funny. "
                 + "Pixel art, front-facing, centered, entire background solid pure magenta (#FF00FF), no text.")
             raw = _gen(prompt, ref)
             if raw is None:
-                raise RuntimeError(f"表情 {expr} 生成失败")
+                raise RuntimeError(f"表情 {st} 生成失败")
             h = _keyed_head(raw)
             if h is None:
-                raise RuntimeError(f"表情 {expr} 抠底为空")
-            heads[expr] = h
-            h.save(os.path.join(char_dir, f"tmp_{char_id}_{expr}.png"))
+                raise RuntimeError(f"表情 {st} 抠底为空")
+            heads[st] = h
+            hp = os.path.join(char_dir, f"tmp_{char_id}_{st}.png")
+            h.save(hp)
+            if base_head_path is None:
+                base_head_path = hp   # 首个头做后续一致性参照
             with _char_lock:
                 _char_jobs[job_id]["progress"] = i + 1
 
-        # 合成: 每状态每帧 → 用映射表情头贴到身体
+        # 合成: 每状态用自己的表情头(single 模式全用 idle 头)
         states = {}
         for st in CHAR_STATE_LIST:
-            expr = STATE_TO_EXPR[st] if mode != 'single' else 'normal'
-            head = heads.get(expr) or heads['normal']
+            head = heads.get(st) or heads.get('idle') or next(iter(heads.values()))
             frames = []
             for f in (0, 1):
                 anc = rig[body].get(st, {}).get(str(f)) or rig[body].get(st, {}).get('0')
@@ -649,8 +666,8 @@ def _char_worker(job_id, char_id, name, prompt_word, gender, personality, mode, 
             if frames:
                 states[st] = frames
         # 清理临时头
-        for expr in exprs:
-            tp = os.path.join(char_dir, f"tmp_{char_id}_{expr}.png")
+        for st in gen_states:
+            tp = os.path.join(char_dir, f"tmp_{char_id}_{st}.png")
             if os.path.exists(tp):
                 os.remove(tp)
 
@@ -688,13 +705,14 @@ def characters_generate():
     mode = "single" if data.get("mode") == "single" else "multi"
     personality = (data.get("personality") or "").strip()
     meme_ref = (data.get("meme") or "").strip()
-    # 整容室重抽: 消耗一瓶整容液
+    # 整容室重抽消耗整容液(开发阶段默认不限制;设 economy.json enforce_potion=true 才启用)
     if data.get("consume"):
         e = _load_economy()
-        if e.get("potions", 0) < 1:
+        if e.get("enforce_potion") and e.get("potions", 0) < 1:
             return jsonify({"ok": False, "msg": "没有整容液，去商店购买"}), 400
-        e["potions"] -= 1
-        _save_economy(e)
+        if e.get("potions", 0) > 0:
+            e["potions"] -= 1
+            _save_economy(e)
     import time as _t
     char_id = format(int(_t.time() * 1000), "x")
     job_id = "cj_" + char_id
