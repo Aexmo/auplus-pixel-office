@@ -1289,18 +1289,43 @@
         👗 换衣间
     </button>
     <div id="dressing-panel" style="display:none; position:fixed; top:calc(env(safe-area-inset-top, 0px) + 138px); right:12px; width:250px; max-height:66vh; overflow-y:auto; z-index:999998; background:rgba(20,20,28,0.96); border:2px solid #3a3a4a; border-radius:8px; padding:10px; font-family:ArkPixel,monospace; color:#e5e7eb;">
-        <div style="font-size:14px; color:#f9a8d4; margin-bottom:6px;">👗 换衣间 · 角色工坊</div>
-        <div style="font-size:11px; color:#94a3b8; line-height:1.5; margin-bottom:8px;">输入一个词（如：小猫 / 小狗 / 玄凤鹦鹉），自动生成 9 种状态的动画角色套装（约3-4分钟）。</div>
-        <div style="display:flex; gap:6px; margin-bottom:6px;">
-            <input id="dressing-prompt" type="text" placeholder="例如：玄凤鹦鹉" style="flex:1; background:#1f2937; color:#e5e7eb; border:1px solid #475569; border-radius:5px; padding:6px; font-family:ArkPixel,monospace; font-size:12px;">
-            <button id="dressing-go" onclick="dressingGenerate()" style="padding:6px 10px; font-family:ArkPixel,monospace; font-size:12px; cursor:pointer; border:1px solid #be185d; border-radius:5px; background:#500724; color:#f9a8d4;">生成</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-size:14px; color:#f9a8d4;">👗 换衣间 · 角色工坊</span>
+            <span id="dressing-points" style="font-size:11px; color:#fbbf24;">🪙 --</span>
         </div>
+        <div style="font-size:11px; color:#94a3b8; line-height:1.5; margin-bottom:8px;">输入动物名（小猫/柴犬/玄凤鹦鹉），换头式生成 9 状态动画角色。身体动作共享，只换头，约 2 分钟。</div>
+        <input id="dressing-prompt" type="text" placeholder="想生成什么？例如：柴犬" style="width:100%; box-sizing:border-box; background:#1f2937; color:#e5e7eb; border:1px solid #475569; border-radius:5px; padding:6px; font-family:ArkPixel,monospace; font-size:12px; margin-bottom:5px;">
+        <div style="display:flex; gap:5px; margin-bottom:5px;">
+            <select id="dressing-gender" style="flex:1; background:#1f2937; color:#e5e7eb; border:1px solid #475569; border-radius:5px; padding:5px; font-family:ArkPixel,monospace; font-size:11px;">
+                <option value="male">👔 男装身</option>
+                <option value="female">👗 女装身</option>
+            </select>
+            <select id="dressing-mode" style="flex:1; background:#1f2937; color:#e5e7eb; border:1px solid #475569; border-radius:5px; padding:5px; font-family:ArkPixel,monospace; font-size:11px;">
+                <option value="multi">😀 多表情(推荐)</option>
+                <option value="single">🎭 固定表情包</option>
+            </select>
+        </div>
+        <div style="display:flex; gap:5px; margin-bottom:5px;">
+            <select id="dressing-personality" style="flex:1; background:#1f2937; color:#e5e7eb; border:1px solid #475569; border-radius:5px; padding:5px; font-family:ArkPixel,monospace; font-size:11px;">
+                <option value="">🎲 随机人格</option>
+            </select>
+            <input id="dressing-meme" type="text" placeholder="参考表情包(选填)" style="flex:1; min-width:0; background:#1f2937; color:#e5e7eb; border:1px solid #475569; border-radius:5px; padding:5px; font-family:ArkPixel,monospace; font-size:11px;">
+        </div>
+        <button id="dressing-go" onclick="dressingGenerate()" style="width:100%; padding:7px; font-family:ArkPixel,monospace; font-size:12px; cursor:pointer; border:1px solid #be185d; border-radius:5px; background:#500724; color:#f9a8d4; margin-bottom:6px;">🎲 抽卡生成</button>
         <div id="dressing-status" style="font-size:11px; color:#94a3b8; margin-bottom:8px;"></div>
         <div id="dressing-preview-ctl"></div>
         <div style="font-size:12px; color:#cbd5e1; margin-bottom:4px;">角色库</div>
         <div id="dressing-list"></div>
         <div style="font-size:12px; color:#cbd5e1; margin:8px 0 4px;">🎭 Agent 形象指派</div>
         <div id="dressing-agents"></div>
+        <div style="border-top:1px solid rgba(148,163,184,.18); margin-top:10px; padding-top:8px;">
+            <div style="font-size:12px; color:#fbbf24; margin-bottom:4px;">🏪 整容室商店</div>
+            <div style="font-size:10px; color:#94a3b8; margin-bottom:6px;">首个角色免费。改形象需整容液：1瓶=100积分，重抽脸=1瓶。</div>
+            <div style="display:flex; gap:6px; align-items:center;">
+                <button onclick="buyPotion()" style="flex:1; padding:6px; font-family:ArkPixel,monospace; font-size:11px; cursor:pointer; border:1px solid #92742b; border-radius:5px; background:#3a2f10; color:#fbbf24;">🧪 买整容液(100🪙)</button>
+                <button onclick="devEarn()" title="测试用:加积分" style="padding:6px 8px; font-family:ArkPixel,monospace; font-size:11px; cursor:pointer; border:1px solid #475569; border-radius:5px; background:#1f2937; color:#93c5fd;">+100🪙</button>
+            </div>
+        </div>
     </div>
     <div id="creator-panel" style="display:none; position:fixed; top:calc(env(safe-area-inset-top, 0px) + 96px); right:12px; width:236px; max-height:72vh; overflow-y:auto; z-index:999998; background:rgba(20,20,28,0.96); border:2px solid #3a3a4a; border-radius:8px; padding:10px; font-family:ArkPixel,monospace; color:#e5e7eb;">
         <div style="font-size:14px; color:#4ade80; margin-bottom:6px;">🛠 造物主模式</div>
@@ -5247,35 +5272,86 @@ function toggleBrokerPanel() {
             if (!window.actorDefs.length) c.innerHTML = '<div style="font-size:11px;color:#64748b;">还没有角色，输入提示词生成第一个吧</div>';
             renderDressingAgents();
         }
+        async function loadPersonalities() {
+            const sel = document.getElementById('dressing-personality');
+            if (!sel || sel.dataset.filled) return;
+            try {
+                const list = await fetch('/characters/personalities').then(r => r.json());
+                (list || []).forEach(n => {
+                    const o = document.createElement('option'); o.value = n; o.textContent = '😺 ' + n;
+                    sel.appendChild(o);
+                });
+                sel.dataset.filled = '1';
+            } catch (e) {}
+        }
+        async function loadEconomy() {
+            try {
+                const e = await fetch('/economy').then(r => r.json());
+                window.economy = e;
+                const el = document.getElementById('dressing-points');
+                if (el) el.textContent = '🪙 ' + (e.points || 0) + '  🧪 ' + (e.potions || 0);
+            } catch (e) {}
+        }
+        async function buyPotion() {
+            const st = document.getElementById('dressing-status');
+            try {
+                const r = await fetch('/economy/buy-potion', { method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(x => x.json());
+                if (!r.ok) { st.textContent = '❌ ' + r.msg; return; }
+                window.economy = r; loadEconomy();
+                st.textContent = '🧪 买了一瓶整容液！现有 ' + r.potions + ' 瓶';
+            } catch (e) { st.textContent = '❌ ' + e; }
+        }
+        async function devEarn() {
+            try {
+                const r = await fetch('/economy/earn', { method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }, body: '{"amount":100}' }).then(x => x.json());
+                window.economy = r; loadEconomy();
+            } catch (e) {}
+        }
         async function dressingGenerate() {
-            const inp = document.getElementById('dressing-prompt');
             const st = document.getElementById('dressing-status');
             const btn = document.getElementById('dressing-go');
-            const word = (inp.value || '').trim();
-            if (!word) { st.textContent = '请先输入角色描述'; return; }
+            const word = (document.getElementById('dressing-prompt').value || '').trim();
+            if (!word) { st.textContent = '请先输入动物名'; return; }
+            // 已有角色时，再抽卡消耗整容液
+            const isFirst = !(window.actorDefs && window.actorDefs.length);
+            if (!isFirst && window.economy && (window.economy.potions || 0) < 1) {
+                st.textContent = '🧪 没有整容液了！去商店用积分买一瓶再抽卡';
+                return;
+            }
             btn.disabled = true;
-            st.textContent = '🎬 开始生成角色套装…';
+            st.textContent = '🎲 抽卡中…生成表情头';
             try {
+                const payload = {
+                    prompt: word,
+                    gender: document.getElementById('dressing-gender').value,
+                    mode: document.getElementById('dressing-mode').value,
+                    personality: document.getElementById('dressing-personality').value,
+                    meme: document.getElementById('dressing-meme').value.trim(),
+                    consume: !isFirst
+                };
                 const j = await fetch('/characters/generate', { method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: word }) }).then(r => r.json());
+                    body: JSON.stringify(payload) }).then(r => r.json());
                 if (!j.ok) throw new Error(j.msg || '启动失败');
                 const poll = setInterval(async () => {
                     const jb = await fetch('/characters/job/' + j.jobId).then(r => r.json()).catch(() => null);
                     if (!jb) return;
                     if (jb.status === 'running') {
-                        st.textContent = '🎬 生成中 ' + jb.progress + '/' + jb.total + ' 状态…';
+                        st.textContent = '🎲 抽卡中 ' + jb.progress + '/' + jb.total + ' 表情…';
                     } else if (jb.status === 'done') {
                         clearInterval(poll);
-                        st.textContent = '✅ 角色套装完成！';
+                        st.textContent = '✅ 抽到「' + word + '·' + (jb.personality || '') + '」！';
                         btn.disabled = false;
                         loadCharacters();
+                        loadEconomy();
                     } else if (jb.status === 'error') {
                         clearInterval(poll);
                         st.textContent = '❌ ' + (jb.error || '生成失败');
                         btn.disabled = false;
                     }
-                }, 3000);
+                }, 2500);
             } catch (e) {
                 st.textContent = '❌ ' + (e.message || e);
                 btn.disabled = false;
@@ -6196,7 +6272,7 @@ function toggleBrokerPanel() {
                 const on = pn.style.display === 'none';
                 pn.style.display = on ? 'block' : 'none';
                 dressingToggle.style.background = on ? '#be185d' : '#333';
-                if (on) loadCharacters();
+                if (on) { loadCharacters(); loadPersonalities(); loadEconomy(); }
             });
             const creatorToggle = document.getElementById('creator-toggle');
             if (creatorToggle) creatorToggle.addEventListener('click', () => setEditorMode(!window.editorMode));

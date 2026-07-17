@@ -500,39 +500,90 @@ def editor_generated_delete(key):
 
 # ================== 换衣间 · 角色生成系统 ==================
 CHARACTERS_FILE = os.path.join(ROOT_DIR, "characters.json")
-CHAR_STATES = [
-    ("idle",     "standing relaxed facing the viewer with a gentle content smile"),
-    ("busy",     "busily typing on a tiny laptop, focused determined face, a small sweat drop"),
-    ("angry",    "furious, puffed up, red anger vein mark on head, steam puffs, gritted teeth"),
-    ("happy",    "jumping with pure joy, huge smile, eyes closed happily, sparkles around"),
-    ("sad",      "slumped and dejected, big teary eyes, drooping posture"),
-    ("eating",   "happily munching a snack held in paws, cheeks stuffed, crumbs flying"),
-    ("playing",  "playing excitedly with a small ball, dynamic playful pose, tongue out"),
-    ("sleepy",   "very drowsy, half-closed heavy eyes, mid-yawn, swaying"),
-    ("sleeping", "curled up sleeping peacefully on a tiny cushion, closed eyes, calm face"),
+BODY_RIG_FILE = os.path.join(str(FRONTEND_PATH), "characters", "body_rig.json")
+CHAR_STATE_LIST = ['idle', 'busy', 'angry', 'happy', 'sad', 'eating', 'playing', 'sleepy', 'sleeping']
+# 9 状态 → 5 表情头(换头架构: 头表情跟随状态)
+STATE_TO_EXPR = {
+    'idle': 'normal', 'busy': 'normal', 'playing': 'happy', 'happy': 'happy',
+    'angry': 'angry', 'sad': 'sad', 'eating': 'happy', 'sleepy': 'sleepy', 'sleeping': 'sleepy',
+}
+EXPR_DESC = {
+    'normal':  'calm neutral friendly face, eyes open, relaxed',
+    'happy':   'big joyful open smile, cheerful sparkling eyes',
+    'angry':   'angry grumpy frown, furrowed brow, gritted teeth',
+    'sad':     'sad teary droopy eyes, wobbly frown, pitiful',
+    'sleepy':  'very sleepy face, closed or half-closed heavy eyes, tired',
+}
+# 表情人格池(个性层): 不指定则随机抽 → 同种动物也各不相同
+PERSONALITY_POOL = [
+    ('呆萌', 'derpy goofy endearing look, simple dot eyes set a bit far apart'),
+    ('傻笑', 'silly big grin showing one tooth, happy-dumb vibe'),
+    ('淡定', 'calm serene half-closed eyes, unbothered zen expression'),
+    ('机灵', 'bright clever sparkly alert eyes, quick-witted look'),
+    ('害羞', 'shy small smile with blushing pink cheeks, bashful'),
+    ('高冷', 'cool aloof half-lidded eyes with a slight side glance, proud'),
+    ('元气', 'energetic big round shiny eyes, cheerful upbeat vibe'),
+    ('憨直', 'honest simple round earnest face, straightforward and dumb-cute'),
 ]
 _char_jobs = {}
 _char_lock = threading.Lock()
 
 
-def _char_worker(job_id, char_id, name, prompt_word):
+def _egg_is(px):
+    r, g, b, a = px
+    return a > 120 and (r + g + b) / 3 > 168 and b >= r - 14 and abs(r - g) < 42 and abs(g - b) < 42
+
+
+def _compose_head_body(rig_path, anchor, head_img):
+    """去头身体 + 动物头 → 完整帧(头比蛋头大1.28,下压盖到肩)"""
+    from PIL import Image as _Img
+    body = _Img.open(rig_path).convert("RGBA")
+    hw = int(anchor['w'] * 1.28)
+    hh = int(head_img.height * hw / head_img.width)
+    head2 = head_img.resize((hw, hh), _Img.NEAREST)
+    pad = max(0, hh - anchor['cy'] + 24)
+    cv = _Img.new("RGBA", (max(body.width, hw) + 30, body.height + pad), (0, 0, 0, 0))
+    bx = (cv.width - body.width) // 2
+    cv.alpha_composite(body, (bx, pad))
+    acx, acy = bx + anchor['cx'], pad + anchor['cy']
+    hx = acx - hw // 2
+    hy = int(acy + anchor['h'] * 0.30) - hh
+    cv.alpha_composite(head2, (hx, hy))
+    bb = cv.getbbox()
+    return cv.crop(bb) if bb else cv
+
+
+def _char_worker(job_id, char_id, name, prompt_word, gender, personality, mode, meme_ref):
+    """换头式角色生成: 生成表情头 → 合成到共享身体动画帧"""
     from PIL import Image as _Img
     import io as _io
+    import random as _rnd
     try:
         cfg = load_runtime_config()
         api_key = (cfg.get("gemini_api_key") or "").strip()
         char_dir = os.path.join(str(FRONTEND_PATH), "characters")
         os.makedirs(char_dir, exist_ok=True)
-        # 风格锚 = 龙虾猫首帧(精度基准)
+        body = "body_f" if gender == "female" else "body_m"
+        rig = {}
+        if os.path.exists(BODY_RIG_FILE):
+            rig = json.load(open(BODY_RIG_FILE, encoding="utf-8"))
+        if body not in rig:
+            raise RuntimeError(f"身体 {body} 尚未就绪(动画生成中)，请稍后或换性别")
         style_ref = os.path.join(char_dir, "_style_ref.png")
         if not os.path.exists(style_ref):
             sheet = _Img.open(os.path.join(str(FRONTEND_PATH), "star-idle-v5.png"))
             sheet.crop((0, 0, 256, 256)).save(style_ref)
-        base_path = None
-        states = {}
 
-        def _gen_img(prompt, ref):
-            for attempt in range(3):
+        # 人格(个性层): 指定则用，否则随机抽
+        pdesc = ""
+        pname = personality or ""
+        if personality:
+            pdesc = next((d for n, d in PERSONALITY_POOL if n == personality), "")
+        if not pdesc:
+            pname, pdesc = _rnd.choice(PERSONALITY_POOL)
+
+        def _gen(prompt, ref):
+            for _ in range(3):
                 try:
                     return _genprop_call_gemini(api_key, prompt, ref)
                 except Exception:
@@ -540,64 +591,84 @@ def _char_worker(job_id, char_id, name, prompt_word):
                     _t.sleep(6)
             return None
 
-        def _post(raw, th=150):
+        def _keyed_head(raw):
             im2 = _genprop_key_magenta(_Img.open(_io.BytesIO(raw)))
             bb = im2.getbbox()
-            if not bb:
-                return None
-            im2 = im2.crop(bb)
-            return im2.resize((max(1, round(im2.width * th / im2.height)), th), _Img.NEAREST)
+            return im2.crop(bb) if bb else None
 
-        HUMANOID = ("an anthropomorphic humanoid " + prompt_word + " mascot character, standing UPRIGHT on two "
-                    "legs like a person, with humanoid arms and hands, expressive person-like body language")
-        for i, (state, sdesc) in enumerate(CHAR_STATES):
+        core = (f"ultra-simple flat cute pixel style, minimal shading, clean outline, BOLD distinctive "
+                f"{prompt_word} species features so it is instantly recognizable, {pdesc}")
+        if meme_ref:
+            core += f", inspired by the famous {meme_ref} meme style"
+
+        # mode A(固定表情/表情包): 只出 normal 头，全状态复用
+        # mode B(多表情): 出 5 个表情头
+        exprs = ['normal'] if mode == 'single' else ['normal', 'happy', 'angry', 'sad', 'sleepy']
+        with _char_lock:
+            _char_jobs[job_id]["total"] = len(exprs)
+
+        heads = {}
+        for i, expr in enumerate(exprs):
+            face = EXPR_DESC[expr] if mode != 'single' else "the character's signature expression"
+            ref = os.path.join(char_dir, f"tmp_{char_id}_normal.png") if (expr != 'normal' and 'normal' in heads) else style_ref
             prompt = (
-                "Reference image: " + ("a pixel-art mascot character from our game (style and detail benchmark)."
-                    if base_path is None else
-                    "THIS EXACT character. Keep the identical character design, colors, proportions and pixel style.")
-                + f" Create a pixel art chibi sprite: {HUMANOID}, {sdesc}. "
-                + "High-detail pixel art like the reference quality, single character only, centered, "
-                + "entire background solid pure magenta (#FF00FF), no text, no watermark.")
-            raw = _gen_img(prompt, base_path or style_ref)
+                "Reference image: " + ("pixel style benchmark." if ref == style_ref else
+                    "THIS EXACT character head. Keep identical design/colors/species, change ONLY the facial expression.")
+                + f" Create ONLY THE HEAD of a {prompt_word} mascot: a big round HEAD with face, NO body, NO neck. "
+                + f"Art style: {core}. Facial expression: {face}. "
+                + "Pixel art, front-facing, centered, entire background solid pure magenta (#FF00FF), no text.")
+            raw = _gen(prompt, ref)
             if raw is None:
-                raise RuntimeError(f"状态 {state} 生成失败")
-            im = _post(raw)
-            if im is None:
-                raise RuntimeError(f"状态 {state} 抠底后为空")
-            fn = f"char_{char_id}_{state}.png"
-            im.save(os.path.join(char_dir, fn))
-            if state == "idle":
-                base_path = os.path.join(char_dir, fn)
-            # 第2帧: 以第1帧为参照生成同构微动作帧 → 2帧循环真动画
-            f2_prompt = ("Reference image: animation frame 1 of THIS EXACT pixel art character. "
-                         "Create animation frame 2 of a two-frame loop: keep the IDENTICAL character, "
-                         "same pose composition, same size and framing, change ONLY subtle motion details "
-                         "(limbs/ears/tail slightly shifted, small bounce or blink) so the two frames loop "
-                         "as a smooth animation. Entire background solid pure magenta (#FF00FF), no text.")
-            raw2 = _gen_img(f2_prompt, os.path.join(char_dir, fn))
-            frames = [fn]
-            if raw2 is not None:
-                im2 = _post(raw2)
-                if im2 is not None:
-                    fn2 = f"char_{char_id}_{state}_2.png"
-                    im2.save(os.path.join(char_dir, fn2))
-                    frames.append(fn2)
-            states[state] = frames
+                raise RuntimeError(f"表情 {expr} 生成失败")
+            h = _keyed_head(raw)
+            if h is None:
+                raise RuntimeError(f"表情 {expr} 抠底为空")
+            heads[expr] = h
+            h.save(os.path.join(char_dir, f"tmp_{char_id}_{expr}.png"))
             with _char_lock:
                 _char_jobs[job_id]["progress"] = i + 1
-                _char_jobs[job_id]["states"] = dict(states)
+
+        # 合成: 每状态每帧 → 用映射表情头贴到身体
+        states = {}
+        for st in CHAR_STATE_LIST:
+            expr = STATE_TO_EXPR[st] if mode != 'single' else 'normal'
+            head = heads.get(expr) or heads['normal']
+            frames = []
+            for f in (0, 1):
+                anc = rig[body].get(st, {}).get(str(f)) or rig[body].get(st, {}).get('0')
+                rig_path = os.path.join(char_dir, f"rig_{body}_{st}_{f}.png")
+                if not os.path.exists(rig_path):
+                    rig_path = os.path.join(char_dir, f"rig_{body}_{st}_0.png")
+                if not anc or not os.path.exists(rig_path):
+                    continue
+                comp = _compose_head_body(rig_path, anc, head)
+                comp = comp.resize((max(1, round(comp.width * 190 / comp.height)), 190), _Img.NEAREST)
+                fn = f"char_{char_id}_{st}_{f}.png"
+                comp.save(os.path.join(char_dir, fn))
+                frames.append(fn)
+            if frames:
+                states[st] = frames
+        # 清理临时头
+        for expr in exprs:
+            tp = os.path.join(char_dir, f"tmp_{char_id}_{expr}.png")
+            if os.path.exists(tp):
+                os.remove(tp)
+
         chars = []
         if os.path.exists(CHARACTERS_FILE):
             try:
                 chars = json.load(open(CHARACTERS_FILE, encoding="utf-8"))
             except Exception:
                 chars = []
-        chars.append({"id": char_id, "name": name, "prompt": prompt_word,
+        chars.append({"id": char_id, "name": name, "prompt": prompt_word, "gender": gender,
+                      "personality": pname, "mode": mode, "meme": meme_ref or "",
                       "states": states, "ts": datetime.now().isoformat()})
         with open(CHARACTERS_FILE, "w", encoding="utf-8") as f:
             json.dump(chars, f, ensure_ascii=False, indent=1)
         with _char_lock:
             _char_jobs[job_id]["status"] = "done"
+            _char_jobs[job_id]["states"] = states
+            _char_jobs[job_id]["personality"] = pname
     except Exception as e:
         with _char_lock:
             _char_jobs[job_id]["status"] = "error"
@@ -613,16 +684,85 @@ def characters_generate():
     cfg = load_runtime_config()
     if not (cfg.get("gemini_api_key") or "").strip():
         return jsonify({"ok": False, "msg": "缺少生图 API Key"}), 400
+    gender = "female" if data.get("gender") == "female" else "male"
+    mode = "single" if data.get("mode") == "single" else "multi"
+    personality = (data.get("personality") or "").strip()
+    meme_ref = (data.get("meme") or "").strip()
+    # 整容室重抽: 消耗一瓶整容液
+    if data.get("consume"):
+        e = _load_economy()
+        if e.get("potions", 0) < 1:
+            return jsonify({"ok": False, "msg": "没有整容液，去商店购买"}), 400
+        e["potions"] -= 1
+        _save_economy(e)
     import time as _t
-    char_id = format(int(_t.time()), "x")
+    char_id = format(int(_t.time() * 1000), "x")
     job_id = "cj_" + char_id
     with _char_lock:
-        _char_jobs[job_id] = {"status": "running", "progress": 0,
-                              "total": len(CHAR_STATES), "states": {}, "charId": char_id}
+        _char_jobs[job_id] = {"status": "running", "progress": 0, "total": 5,
+                              "states": {}, "charId": char_id}
     t = threading.Thread(target=_char_worker,
-                         args=(job_id, char_id, (data.get("name") or word)[:16], word), daemon=True)
+                         args=(job_id, char_id, (data.get("name") or word)[:16], word,
+                               gender, personality, mode, meme_ref), daemon=True)
     t.start()
     return jsonify({"ok": True, "jobId": job_id, "charId": char_id})
+
+
+@app.route("/characters/personalities", methods=["GET"])
+def characters_personalities():
+    return jsonify([n for n, _ in PERSONALITY_POOL])
+
+
+# ================== 整容室经济: 积分 + 整容液 ==================
+ECONOMY_FILE = os.path.join(ROOT_DIR, "economy.json")
+POTION_COST = 100   # 一瓶整容液 = 100 积分
+
+
+def _load_economy():
+    base = {"points": 300, "potions": 1}   # 初始赠 300 积分 + 1 瓶
+    try:
+        if os.path.exists(ECONOMY_FILE):
+            d = json.load(open(ECONOMY_FILE, encoding="utf-8"))
+            base.update({k: d.get(k, base[k]) for k in base})
+    except Exception:
+        pass
+    return base
+
+
+def _save_economy(e):
+    with open(ECONOMY_FILE, "w", encoding="utf-8") as f:
+        json.dump(e, f, ensure_ascii=False, indent=1)
+
+
+@app.route("/economy", methods=["GET"])
+def economy_get():
+    e = _load_economy()
+    e["potionCost"] = POTION_COST
+    return jsonify(e)
+
+
+@app.route("/economy/earn", methods=["POST"])
+def economy_earn():
+    data = request.get_json(force=True) or {}
+    n = int(data.get("amount") or 0)
+    e = _load_economy()
+    e["points"] = max(0, e["points"] + n)
+    _save_economy(e)
+    return jsonify({"ok": True, **e})
+
+
+@app.route("/economy/buy-potion", methods=["POST"])
+def economy_buy_potion():
+    data = request.get_json(force=True) or {}
+    qty = max(1, int(data.get("qty") or 1))
+    e = _load_economy()
+    cost = POTION_COST * qty
+    if e["points"] < cost:
+        return jsonify({"ok": False, "msg": f"积分不足(需 {cost}，现有 {e['points']})"}), 400
+    e["points"] -= cost
+    e["potions"] += qty
+    _save_economy(e)
+    return jsonify({"ok": True, **e})
 
 
 @app.route("/characters/job/<jid>", methods=["GET"])
