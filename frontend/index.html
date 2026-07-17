@@ -4746,12 +4746,18 @@ function toggleBrokerPanel() {
             renderWarehouseSection();
         }
         function ensureTextureLoaded(key, url) {
+            // 运行时安全加载：用独立 Image + textures.addImage，绝不调用 scene.load.start()
+            // （运行时重启 Phaser 加载器会引发已有精灵尺寸/位置错乱，故避免）
             return new Promise((resolve) => {
                 const scene = game;
                 if (!scene || scene.textures.exists(key)) return resolve(true);
-                scene.load.image(key, url);
-                scene.load.once('complete', () => resolve(scene.textures.exists(key)));
-                scene.load.start();
+                const img = new Image();
+                img.onload = () => {
+                    try { if (!scene.textures.exists(key)) scene.textures.addImage(key, img); } catch (e) {}
+                    resolve(scene.textures.exists(key));
+                };
+                img.onerror = () => resolve(false);
+                img.src = url;
             });
         }
         function editorAddFromPalette(pal) {
