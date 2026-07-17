@@ -1690,6 +1690,7 @@
 
         let game, star, sofa, serverroom, officeBgSprite, areas = {}, currentState = 'idle', pendingDesiredState = null, statusText, lastFetch = 0, lastBlink = 0, lastBubble = 0, targetX = 660, targetY = 170, bubble = null, typewriterText = '', typewriterTarget = '', typewriterIndex = 0, lastTypewriter = 0, syncAnimSprite = null, syncAnimPlayable = false, catBubble = null, selectionBoxGraphics = null;
         const IDLE_SOFA_ANCHOR = { x: 700, y: 700 }; // 休息区中心（扩容 v2）
+        const STAR_ENABLED = false; // 遗留主角色(龙虾猫+沙发)开关——Aaron 2026-07-17 要求移除
         const IDLE_STAR_SCALE = 1.0; // star idle 改为256帧原生显示，不再放大
         // flowers 精灵表规格：固定单帧 128x128，4x4
         let FLOWERS_FRAME_W = 65;
@@ -5286,6 +5287,7 @@ function toggleBrokerPanel() {
             // Place furniture: Sofa
             // NOTE: coordinates are interpreted as the TOP-LEFT corner of the sprite
             const sofaShadow = this.add.image(IDLE_SOFA_ANCHOR.x, IDLE_SOFA_ANCHOR.y, 'sofa_shadow').setOrigin(0.5);
+            window.sofaShadowRef = sofaShadow;
             sofaShadow.setDepth(9);
             sofa = this.add.sprite(IDLE_SOFA_ANCHOR.x, IDLE_SOFA_ANCHOR.y, 'sofa_idle').setOrigin(0.5).setScale(0.62);
             sofa.setDepth(10);
@@ -5847,6 +5849,12 @@ function toggleBrokerPanel() {
         }
 
         function update(time) {
+            if (!STAR_ENABLED) {
+                if (typeof star !== 'undefined' && star && star.visible) star.setVisible(false);
+                if (window.starWorking && window.starWorking.visible) window.starWorking.setVisible(false);
+                if (typeof sofa !== 'undefined' && sofa && sofa.visible) sofa.setVisible(false);
+                if (window.sofaShadowRef && window.sofaShadowRef.visible) window.sofaShadowRef.setVisible(false);
+            }
             if (time - lastFetch > FETCH_INTERVAL) { fetchStatus(); lastFetch = time; }
             if (time - lastGuestAgentsFetch > GUEST_AGENTS_FETCH_INTERVAL) { fetchGuestAgents(); lastGuestAgentsFetch = time; }
 
