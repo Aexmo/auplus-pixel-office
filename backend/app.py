@@ -461,6 +461,31 @@ def editor_generate_prop():
         return jsonify({"ok": False, "msg": str(e)}), 500
 
 
+@app.route("/editor/generated/<key>", methods=["DELETE"])
+def editor_generated_delete(key):
+    """从素材库永久移除一个 AI 生成素材（前端已做密码确认）"""
+    try:
+        if not key.startswith("gen_") or "/" in key or ".." in key:
+            return jsonify({"ok": False, "msg": "非法 key"}), 400
+        gen_dir = os.path.join(str(FRONTEND_PATH), "generated")
+        for fn in (key + ".png", key + "_face.png"):
+            fp = os.path.join(gen_dir, fn)
+            if os.path.exists(fp):
+                os.remove(fp)
+        items = []
+        if os.path.exists(GEN_ASSETS_FILE):
+            try:
+                items = json.load(open(GEN_ASSETS_FILE, encoding="utf-8"))
+            except Exception:
+                items = []
+        items = [it for it in items if it.get("key") != key]
+        with open(GEN_ASSETS_FILE, "w", encoding="utf-8") as f:
+            json.dump(items, f, ensure_ascii=False, indent=1)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 500
+
+
 @app.route("/editor/generated-list", methods=["GET"])
 def editor_generated_list():
     """已生成素材清单（供造物主物品栏「我的生成」分组）"""

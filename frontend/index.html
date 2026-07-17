@@ -4228,11 +4228,15 @@ function toggleBrokerPanel() {
             const gfx = window.editorSelGfx;
             if (!gfx) return;
             gfx.clear();
+            if (window.editorSelX) window.editorSelX.setVisible(false);
             const it = window.editorItems[window.editorSelectedId];
             if (!window.editorMode || !it || !it.spr.visible) return;
             const b = it.spr.getBounds();
             gfx.lineStyle(2, 0x4ade80, 1).strokeRect(b.x - 3, b.y - 3, b.width + 6, b.height + 6);
             gfx.fillStyle(0x4ade80, 1).fillRect(b.x - 3, b.y - 3, 6, 6);
+            if (window.editorSelX) {
+                window.editorSelX.setPosition(b.x + b.width + 10, b.y - 10).setVisible(true);
+            }
         }
         function editorSelect(id) {
             window.editorSelectedId = id;
@@ -4637,12 +4641,32 @@ function toggleBrokerPanel() {
             editorSelect(rec.id);
             queueEditorSave();
         }
+        // ✕ 快捷移除：从页面移除，素材保留在素材库(默认物走隐藏，可在恢复默认找回)
+        function editorRemoveFromScene(id) {
+            const it = window.editorItems[id];
+            if (!it) return;
+            if (it.custom || it.sign) {
+                it.spr.destroy();
+                delete window.editorItems[id];
+            } else {
+                it.spr.setVisible(false);
+            }
+            window.editorSelectedId = null;
+            editorSelBoxDraw();
+            editorPanelSyncSel();
+            queueEditorSave();
+        }
         function editorDeleteSelected() {
             const it = window.editorItems[window.editorSelectedId];
             if (!it) return;
             const pwd = prompt('永久删除需输入密码（不想删可用「移入仓库」暂存）：');
             if (pwd === null) return;
             if (pwd !== '3123119') { alert('密码错误，未删除'); return; }
+            const texKey = it.spr.texture && it.spr.texture.key;
+            if (it.custom && texKey && texKey.indexOf('gen_') === 0) {
+                fetch('/editor/generated/' + texKey, { method: 'DELETE' }).catch(() => {});
+                window.__genAssets = (window.__genAssets || []).filter(g => g.key !== texKey);
+            }
             if (it.custom) {
                 it.spr.destroy();
                 delete window.editorItems[window.editorSelectedId];
@@ -4824,6 +4848,7 @@ function toggleBrokerPanel() {
             if (btn) { btn.style.background = on ? '#16a34a' : '#333'; btn.textContent = on ? '🛠 退出造物主' : '🛠 造物主'; }
             if (on) buildCreatorPanel();
             if (!on) { window.editorSelectedId = null; editorPanelSyncSel(); }
+            if (!on && window.editorSelX) window.editorSelX.setVisible(false);
             editorSelBoxDraw();
         }
         // ================== 造物主模式代码结束 ==================
@@ -5599,6 +5624,14 @@ function toggleBrokerPanel() {
 
             // ---- 造物主模式：选择框 + 拖拽 + 存档加载 + 按钮 ----
             window.editorSelGfx = this.add.graphics().setDepth(5000);
+            window.editorSelX = this.add.text(0, 0, '✕', {
+                fontFamily: 'ArkPixel, monospace', fontSize: '15px', fill: '#fff',
+                backgroundColor: '#dc2626', padding: { x: 5, y: 2 }
+            }).setOrigin(0.5).setDepth(5001).setVisible(false).setInteractive({ useHandCursor: true });
+            window.editorSelX.on('pointerdown', (pointer, lx, ly, event) => {
+                if (event && event.stopPropagation) event.stopPropagation();
+                if (window.editorMode && window.editorSelectedId) editorRemoveFromScene(window.editorSelectedId);
+            });
             this.input.on('gameobjectdown', (pointer, obj) => {
                 if (!window.editorMode) return;
                 if (obj.__editorId) { editorSelect(obj.__editorId); return; }
