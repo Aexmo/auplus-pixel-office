@@ -4019,19 +4019,44 @@ function toggleBrokerPanel() {
         }
 
         function drawOfficeRooms(scene) {
-            const OFFICE_ROOMS = [
-                { name: '🚪 老板办公室 · YIMU', x: 24,   y: 24,  w: 400,  h: 400, color: 0x3b2f52, border: 0x9b8bc0 },
-                { name: '💻 开发区',            x: 444,  y: 24,  w: 1132, h: 460, color: 0x24384a, border: 0x6f98b8 },
-                { name: '🔬 调研区',            x: 24,   y: 444, w: 400,  h: 480, color: 0x24402f, border: 0x6fb88a },
-                { name: '☕ 休息区',            x: 444,  y: 504, w: 640,  h: 420, color: 0x453724, border: 0xc0a26f },
-                { name: '🐛 Bug 区',            x: 1104, y: 504, w: 472,  h: 250, color: 0x4a2626, border: 0xd07a7a },
-                { name: '🖥 服务器区',          x: 1104, y: 774, w: 472,  h: 150, color: 0x26263a, border: 0x7a7ad0 }
+            const W = scene.scale.width, H = scene.scale.height;
+            const ROOMS = [
+                { name: '🚪 老板办公室 · YIMU', x: 24,   y: 24,  w: 400,  h: 400, f1: 0x4a3f66, f2: 0x544a72, wall: 0x2b2340, label: 0xcdbcf5 },
+                { name: '💻 开发区',            x: 444,  y: 24,  w: 1132, h: 460, f1: 0x2f4a5e, f2: 0x37556c, wall: 0x1c3244, label: 0xbfe0f5 },
+                { name: '🔬 调研区',            x: 24,   y: 444, w: 400,  h: 480, f1: 0x2f5544, f2: 0x376250, wall: 0x1c3b2e, label: 0xbff5da },
+                { name: '☕ 休息区',            x: 444,  y: 504, w: 640,  h: 420, f1: 0x5e4a34, f2: 0x6c563d, wall: 0x3b2d1c, label: 0xf5dcb0 },
+                { name: '🐛 Bug 区',            x: 1104, y: 504, w: 472,  h: 250, f1: 0x5e3434, f2: 0x6c3d3d, wall: 0x3b1c1c, label: 0xf5b0b0 },
+                { name: '🖥 服务器区',          x: 1104, y: 774, w: 472,  h: 150, f1: 0x33334a, f2: 0x3b3b56, wall: 0x1c1c35, label: 0xb8b8f5 }
             ];
-            scene.add.rectangle(scene.scale.width / 2, scene.scale.height / 2, scene.scale.width, scene.scale.height, 0x141420).setDepth(-100);
-            OFFICE_ROOMS.forEach(r => {
-                const f = scene.add.rectangle(r.x + r.w / 2, r.y + r.h / 2, r.w, r.h, r.color, 1).setDepth(-90);
-                f.setStrokeStyle(3, r.border, 1);
-                scene.add.text(r.x + 12, r.y + 8, r.name, { fontFamily: 'ArkPixel, monospace', fontSize: '16px', fill: '#' + r.border.toString(16).padStart(6, '0'), stroke: '#000', strokeThickness: 3 }).setOrigin(0, 0).setDepth(-80);
+            const g = scene.add.graphics().setDepth(-100);
+            g.fillStyle(0x0f0f16, 1); g.fillRect(0, 0, W, H);   // 走廊/地面底色
+            const TILE = 48;
+            ROOMS.forEach(r => {
+                // 棋盘瓷砖地板
+                for (let y = r.y; y < r.y + r.h; y += TILE) {
+                    for (let x = r.x; x < r.x + r.w; x += TILE) {
+                        const even = ((((x - r.x) / TILE) | 0) + (((y - r.y) / TILE) | 0)) % 2 === 0;
+                        g.fillStyle(even ? r.f1 : r.f2, 1);
+                        g.fillRect(x, y, Math.min(TILE, r.x + r.w - x), Math.min(TILE, r.y + r.h - y));
+                    }
+                }
+                // 顶部墙带（深色，像一面墙）
+                g.fillStyle(r.wall, 1); g.fillRect(r.x, r.y, r.w, 22);
+                // 墙裙高光线
+                g.fillStyle(0xffffff, 0.10); g.fillRect(r.x, r.y + 22, r.w, 3);
+                // 房间外墙边框（厚墙）
+                g.lineStyle(6, r.wall, 1); g.strokeRect(r.x, r.y, r.w, r.h);
+            });
+            // 地毯：老板桌 & 沙发下
+            g.fillStyle(0x8a6bb0, 0.30); g.fillRect(150, 250, 160, 120);   // 老板办公室地毯
+            g.fillStyle(0xb08a6b, 0.28); g.fillRect(560, 620, 300, 180);   // 休息区地毯
+            // 房间名牌（贴在墙带上）
+            ROOMS.forEach(r => {
+                scene.add.text(r.x + 14, r.y + 3, r.name, {
+                    fontFamily: 'ArkPixel, monospace', fontSize: '15px',
+                    fill: '#' + r.label.toString(16).padStart(6, '0'),
+                    stroke: '#000', strokeThickness: 3
+                }).setOrigin(0, 0).setDepth(-79);
             });
         }
 
@@ -4116,7 +4141,7 @@ function toggleBrokerPanel() {
             // Random plant at (565,178) (frame 0-15, 160x160 each)
             const plantFrameCount = 16;
             const randomPlantFrame = Math.floor(Math.random() * plantFrameCount);
-            const plant = game.add.sprite(565, 178, 'plants', randomPlantFrame).setOrigin(0.5);
+            const plant = game.add.sprite(380, 150, 'plants', randomPlantFrame).setOrigin(0.5);
             plant.setDepth(5);
             plant.setInteractive({ useHandCursor: true });
             // Expose to global for click handler
@@ -4130,7 +4155,7 @@ function toggleBrokerPanel() {
 
             // Random plant at (230,185) (frame 0-15, 160x160 each)
             const plant2Frame = Math.floor(Math.random() * plantFrameCount);
-            const plant2 = game.add.sprite(230, 185, 'plants', plant2Frame).setOrigin(0.5);
+            const plant2 = game.add.sprite(1040, 570, 'plants', plant2Frame).setOrigin(0.5);
             plant2.setDepth(5);
             plant2.setInteractive({ useHandCursor: true });
             // Expose to global for click handler
@@ -4143,7 +4168,7 @@ function toggleBrokerPanel() {
 
             // Random plant at (977,496) (frame 0-15, 160x160 each)
             const plant3Frame = Math.floor(Math.random() * plantFrameCount);
-            const plant3 = game.add.sprite(977, 496, 'plants', plant3Frame).setOrigin(0.5);
+            const plant3 = game.add.sprite(370, 530, 'plants', plant3Frame).setOrigin(0.5);
             plant3.setDepth(5);
             plant3.setInteractive({ useHandCursor: true });
             // Expose to global for click handler
