@@ -3614,8 +3614,9 @@ function toggleBrokerPanel() {
             { x: 620, y: 430 }, { x: 1380, y: 430 }
         ];
         window.agentSeats = {};   // agentName -> 座位index（稳定，随存档持久化）
-        const DESK_SIT_DY = 58;   // 脚点相对桌心上移(坐桌后,身子在显示器上方露出)
-        const DESK_SIT_DX = -46;  // 横向偏移到显示器旁,避免被显示器整个挡住
+        // 坐电脑后: 居中,脸中线约在显示器顶(半张脸露屏幕上方),身体被显示器盖住
+        const DESK_SIT_DY = -11;  // 脚点相对桌心(负=下移到桌心下方,让脸露在显示器顶)
+        const DESK_SIT_DX = 0;    // 居中对准显示器
         // 动态识别所有"可见的"办公桌(原始或用户自己摆的custom desk_v2都算),按位置排序
         function getVisibleDesks() {
             const desks = [];
@@ -3723,7 +3724,7 @@ function toggleBrokerPanel() {
                         }
                     }
                     // 坐桌后: 深度低于桌子(桌子+显示器盖住下半身=坐着打字);否则站立在最上层
-                    sprite.setDepth(2600);
+                    sprite.setDepth(p.atDesk ? ((p.deskDepth || 1001) - 1) : 2600);
                     if (DEMO_MODE && (agent.agentId === 'demo_mercury' || agent.name === '水星')) {
                         sprite.y = sprite.y + 10;
                     }
@@ -3777,7 +3778,7 @@ function toggleBrokerPanel() {
                     } else {
                         g.sprite.x = p.x;
                         g.sprite.y = p.y + yOffset;
-                        g.sprite.setDepth(2600);
+                        g.sprite.setDepth(p.atDesk ? ((p.deskDepth || 1001) - 1) : 2600);
                         g.nameText.x = p.x;
                         g.nameText.y = (p.y + yOffset) - 120;
                         g.nameText.setDepth(2601);
