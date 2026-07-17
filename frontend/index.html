@@ -4354,7 +4354,11 @@ function toggleBrokerPanel() {
             const plate = scene.add.image(0, 0, 'prop_plate').setOrigin(0.5)
                 .setDisplaySize(txt.width + 26, 30);
             const cont = scene.add.container(rec.x, rec.y, [plate, txt]);
-            cont.setSize(Math.max(60, txt.width + 26), 32);
+            const hw = Math.max(60, txt.width + 26);
+            cont.setSize(hw, 32);
+            // Container 必须显式指定命中区域，否则点不中
+            cont.setInteractive(new Phaser.Geom.Rectangle(-hw / 2, -16, hw, 32),
+                Phaser.Geom.Rectangle.Contains);
             registerEditorItem(scene, rec.id, cont, 'sign', true, 'sign');
             if (rec.scale) cont.setScale(rec.scale);
             const it = window.editorItems[rec.id];
@@ -4367,7 +4371,9 @@ function toggleBrokerPanel() {
             it.text = v;
             it.txtObj.setText(v);
             it.plateObj.setDisplaySize(it.txtObj.width + 26, 30);
-            it.spr.setSize(Math.max(60, it.txtObj.width + 26), 32);
+            const hw = Math.max(60, it.txtObj.width + 26);
+            it.spr.setSize(hw, 32);
+            if (it.spr.input && it.spr.input.hitArea) it.spr.input.hitArea.setTo(-hw / 2, -16, hw, 32);
             it.dispName = '标牌·' + v;
             queueEditorSave();
         }
