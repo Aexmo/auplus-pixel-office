@@ -530,37 +530,59 @@ def _char_worker(job_id, char_id, name, prompt_word):
             sheet.crop((0, 0, 256, 256)).save(style_ref)
         base_path = None
         states = {}
+
+        def _gen_img(prompt, ref):
+            for attempt in range(3):
+                try:
+                    return _genprop_call_gemini(api_key, prompt, ref)
+                except Exception:
+                    import time as _t
+                    _t.sleep(6)
+            return None
+
+        def _post(raw, th=150):
+            im2 = _genprop_key_magenta(_Img.open(_io.BytesIO(raw)))
+            bb = im2.getbbox()
+            if not bb:
+                return None
+            im2 = im2.crop(bb)
+            return im2.resize((max(1, round(im2.width * th / im2.height)), th), _Img.NEAREST)
+
+        HUMANOID = ("an anthropomorphic humanoid " + prompt_word + " mascot character, standing UPRIGHT on two "
+                    "legs like a person, with humanoid arms and hands, expressive person-like body language")
         for i, (state, sdesc) in enumerate(CHAR_STATES):
             prompt = (
                 "Reference image: " + ("a pixel-art mascot character from our game (style and detail benchmark)."
                     if base_path is None else
                     "THIS EXACT character. Keep the identical character design, colors, proportions and pixel style.")
-                + f" Create a pixel art chibi mascot character sprite: a cute {prompt_word}, {sdesc}. "
+                + f" Create a pixel art chibi sprite: {HUMANOID}, {sdesc}. "
                 + "High-detail pixel art like the reference quality, single character only, centered, "
                 + "entire background solid pure magenta (#FF00FF), no text, no watermark.")
-            ref = base_path or style_ref
-            raw = None
-            for attempt in range(3):
-                try:
-                    raw = _genprop_call_gemini(api_key, prompt, ref)
-                    break
-                except Exception:
-                    import time as _t
-                    _t.sleep(6)
+            raw = _gen_img(prompt, base_path or style_ref)
             if raw is None:
                 raise RuntimeError(f"状态 {state} 生成失败")
-            im = _genprop_key_magenta(_Img.open(_io.BytesIO(raw)))
-            bbox = im.getbbox()
-            if not bbox:
+            im = _post(raw)
+            if im is None:
                 raise RuntimeError(f"状态 {state} 抠底后为空")
-            im = im.crop(bbox)
-            th = 150
-            im = im.resize((max(1, round(im.width * th / im.height)), th), _Img.NEAREST)
             fn = f"char_{char_id}_{state}.png"
             im.save(os.path.join(char_dir, fn))
             if state == "idle":
                 base_path = os.path.join(char_dir, fn)
-            states[state] = fn
+            # 第2帧: 以第1帧为参照生成同构微动作帧 → 2帧循环真动画
+            f2_prompt = ("Reference image: animation frame 1 of THIS EXACT pixel art character. "
+                         "Create animation frame 2 of a two-frame loop: keep the IDENTICAL character, "
+                         "same pose composition, same size and framing, change ONLY subtle motion details "
+                         "(limbs/ears/tail slightly shifted, small bounce or blink) so the two frames loop "
+                         "as a smooth animation. Entire background solid pure magenta (#FF00FF), no text.")
+            raw2 = _gen_img(f2_prompt, os.path.join(char_dir, fn))
+            frames = [fn]
+            if raw2 is not None:
+                im2 = _post(raw2)
+                if im2 is not None:
+                    fn2 = f"char_{char_id}_{state}_2.png"
+                    im2.save(os.path.join(char_dir, fn2))
+                    frames.append(fn2)
+            states[state] = frames
             with _char_lock:
                 _char_jobs[job_id]["progress"] = i + 1
                 _char_jobs[job_id]["states"] = dict(states)

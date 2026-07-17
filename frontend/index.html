@@ -4995,22 +4995,47 @@ function toggleBrokerPanel() {
             try { window.actorDefs = await fetch('/characters/list').then(r => r.json()) || []; } catch (e) {}
             renderDressingList();
         }
-        function actorTexKey(charId, state) { return 'char_' + charId + '_' + state; }
+        function actorStateFrames(charId, state) {
+            const def = (window.actorDefs || []).find(c => c.id === charId);
+            if (!def || !def.states[state]) return [];
+            const v = def.states[state];
+            return Array.isArray(v) ? v : [v];   // 兼容旧单帧角色
+        }
+        function actorTexKey(charId, state, fi) {
+            return 'char_' + charId + '_' + state + (fi ? '_f' + fi : '');
+        }
         async function ensureActorTextures(charId) {
             const def = window.actorDefs.find(c => c.id === charId);
             if (!def) return false;
             for (const st of Object.keys(def.states)) {
-                await ensureTextureLoaded(actorTexKey(charId, st), '/static/characters/' + def.states[st]);
+                const frames = actorStateFrames(charId, st);
+                for (let i = 0; i < frames.length; i++) {
+                    await ensureTextureLoaded(actorTexKey(charId, st, i), '/static/characters/' + frames[i]);
+                }
             }
             return true;
         }
+        const ACTOR_FRAME_MS = { idle: 450, busy: 220, angry: 150, happy: 260, sad: 600,
+            eating: 300, playing: 260, sleepy: 650, sleeping: 800 };
         function applyActorState(it, state) {
             const spr = it.spr;
             it.state = state;
-            const key = actorTexKey(it.charId, state);
+            const key = actorTexKey(it.charId, state, 0);
             if (game.textures.exists(key)) spr.setTexture(key);
             if (it.tween) { it.tween.stop(); it.tween = null; }
             if (it.fxTimer) { clearInterval(it.fxTimer); it.fxTimer = null; }
+            if (it.animTimer) { clearInterval(it.animTimer); it.animTimer = null; }
+            // 真帧动画: 多帧状态按节奏循环换帧
+            const frameCount = actorStateFrames(it.charId, state).length;
+            if (frameCount > 1) {
+                let fi = 0;
+                it.animTimer = setInterval(() => {
+                    if (!spr.active || !spr.visible) { clearInterval(it.animTimer); return; }
+                    fi = (fi + 1) % frameCount;
+                    const k2 = actorTexKey(it.charId, state, fi);
+                    if (game.textures.exists(k2)) spr.setTexture(k2);
+                }, ACTOR_FRAME_MS[state] || 350);
+            }
             spr.setAngle(0); spr.setScale(it.baseScale || 1);
             const T = game.tweens;
             if (state === 'idle') it.tween = T.add({ targets: spr, y: '-=4', duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
@@ -5072,6 +5097,7 @@ function toggleBrokerPanel() {
                 if (gs.skinHolder) {   // 摘皮肤 → 销毁重建默认形象
                     if (gs.skinHolder.tween) gs.skinHolder.tween.stop();
                     if (gs.skinHolder.fxTimer) clearInterval(gs.skinHolder.fxTimer);
+                    if (gs.skinHolder.animTimer) clearInterval(gs.skinHolder.animTimer);
                     gs.sprite.destroy(); gs.nameText.destroy();
                     delete guestSprites[agent.agentId];
                 }
@@ -5133,6 +5159,7 @@ function toggleBrokerPanel() {
                 if (h.tween) h.tween.stop();
                 if (h.fxTimer) clearInterval(h.fxTimer);
                 if (h.autoTimer) clearInterval(h.autoTimer);
+                if (h.animTimer) clearInterval(h.animTimer);
                 h.spr.destroy();
                 window.previewHolder = null;
             }
@@ -5191,7 +5218,8 @@ function toggleBrokerPanel() {
             (window.actorDefs || []).forEach(def => {
                 const row = document.createElement('div');
                 row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;border:1px solid #3a3a4a;border-radius:6px;padding:5px;background:#20202a;';
-                row.innerHTML = '<img src="/static/characters/' + def.states.idle + '" style="width:40px;height:40px;object-fit:contain;image-rendering:pixelated;">'
+                const idleFn = Array.isArray(def.states.idle) ? def.states.idle[0] : def.states.idle;
+                row.innerHTML = '<img src="/static/characters/' + idleFn + '" style="width:40px;height:40px;object-fit:contain;image-rendering:pixelated;">'
                     + '<span style="flex:1;font-size:12px;color:#e5e7eb;">' + def.name + '</span>';
                 const pv = document.createElement('button');
                 pv.textContent = '▶';
