@@ -203,6 +203,9 @@ def merge_agents(roster, task_data):
             state = live_state
             area = "breakroom" if live_state == "idle" else ("error" if live_state == "error" else "writing")
 
+        # 按最终 state 分流到对应房间（扩容 v2：开发区/调研区/Bug区/休息区）
+        area = {"writing": "writing", "executing": "writing", "syncing": "writing",
+                "researching": "research", "error": "error", "idle": "breakroom"}.get(state, "breakroom")
         merged[tid] = {
             "agentId": tid,
             "name": name,

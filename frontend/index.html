@@ -48,7 +48,7 @@
             border: 0;
             image-rendering: pixelated;
             width: 1600px;
-            height: 900px;
+            height: 1000px;
             max-width: none;
             max-height: none;
             aspect-ratio: auto;
@@ -1527,16 +1527,16 @@
 
         const config = {
             type: Phaser.AUTO,
-            width: 1280,
-            height: 720,
+            width: 1600,
+            height: 1000,
             parent: 'game-container',
             pixelArt: true,
             // 桌面端保持 FIT；手机端用 RESIZE，并在相机里按高度做 fit（可横向 pan）
             scale: {
                 mode: IS_TOUCH_DEVICE ? Phaser.Scale.RESIZE : Phaser.Scale.FIT,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
-                width: 1280,
-                height: 720
+                width: 1600,
+                height: 1000
             },
             physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
             scene: { preload: preload, create: create, update: update }
@@ -1652,7 +1652,7 @@
         };
 
         let game, star, sofa, serverroom, officeBgSprite, areas = {}, currentState = 'idle', pendingDesiredState = null, statusText, lastFetch = 0, lastBlink = 0, lastBubble = 0, targetX = 660, targetY = 170, bubble = null, typewriterText = '', typewriterTarget = '', typewriterIndex = 0, lastTypewriter = 0, syncAnimSprite = null, syncAnimPlayable = false, catBubble = null, selectionBoxGraphics = null;
-        const IDLE_SOFA_ANCHOR = { x: 798, y: 272 }; // 统一中心锚点（原 sofa 左上 670,144 的中心）
+        const IDLE_SOFA_ANCHOR = { x: 700, y: 700 }; // 休息区中心（扩容 v2）
         const IDLE_STAR_SCALE = 1.0; // star idle 改为256帧原生显示，不再放大
         // flowers 精灵表规格：固定单帧 128x128，4x4
         let FLOWERS_FRAME_W = 65;
@@ -3474,9 +3474,10 @@ function toggleBrokerPanel() {
             // 工作区域范围（190,526）（380,683）
             // error 区域范围（932,275）（1109,327）
             const rects = {
-                breakroom: { x1: 511, y1: 262, x2: 841, y2: 621 },
-                writing:   { x1: 190, y1: 526, x2: 380, y2: 683 },
-                error:     { x1: 932, y1: 275, x2: 1109, y2: 327 }
+                breakroom: { x1: 480, y1: 560, x2: 1060, y2: 900 },
+                writing:   { x1: 480, y1: 120, x2: 1560, y2: 460 },
+                research:  { x1: 60,  y1: 500, x2: 400,  y2: 900 },
+                error:     { x1: 1140, y1: 560, x2: 1560, y2: 740 }
             };
             return rects[area] || rects.breakroom;
         }
@@ -3493,34 +3494,21 @@ function toggleBrokerPanel() {
             // 非 demo 访客：仍用固定点位，避免每次轮询都抖动。
             const map = {
                 breakroom: [
-                    { x: 511, y: 262 },
-                    { x: 841, y: 621 },
-                    { x: 690, y: 470 },
-                    { x: 600, y: 340 },
-                    { x: 770, y: 540 },
-                    { x: 550, y: 420 },
-                    { x: 720, y: 310 },
-                    { x: 650, y: 580 }
+                    { x: 560, y: 680 }, { x: 700, y: 720 }, { x: 640, y: 620 }, { x: 800, y: 700 },
+                    { x: 900, y: 660 }, { x: 620, y: 780 }, { x: 840, y: 780 }, { x: 980, y: 720 }
                 ],
                 writing: [
-                    { x: 190, y: 526 },
-                    { x: 380, y: 683 },
-                    { x: 300, y: 610 },
-                    { x: 240, y: 570 },
-                    { x: 350, y: 640 },
-                    { x: 160, y: 600 },
-                    { x: 420, y: 560 },
-                    { x: 280, y: 660 }
+                    { x: 620, y: 205 }, { x: 1000, y: 205 }, { x: 1380, y: 205 },
+                    { x: 810, y: 385 }, { x: 1190, y: 385 }, { x: 1000, y: 385 },
+                    { x: 720, y: 300 }, { x: 1280, y: 300 }
+                ],
+                research: [
+                    { x: 130, y: 620 }, { x: 320, y: 620 }, { x: 130, y: 780 },
+                    { x: 320, y: 780 }, { x: 224, y: 700 }, { x: 130, y: 880 }
                 ],
                 error: [
-                    { x: 932, y: 275 },
-                    { x: 1109, y: 327 },
-                    { x: 1020, y: 305 },
-                    { x: 960, y: 340 },
-                    { x: 1070, y: 280 },
-                    { x: 990, y: 260 },
-                    { x: 1050, y: 350 },
-                    { x: 940, y: 310 }
+                    { x: 1200, y: 600 }, { x: 1340, y: 660 }, { x: 1460, y: 620 },
+                    { x: 1260, y: 700 }, { x: 1400, y: 700 }, { x: 1180, y: 660 }
                 ]
             };
             const arr = map[area] || map.breakroom;
@@ -3541,9 +3529,11 @@ function toggleBrokerPanel() {
                 const area = agent.area || (agent.state === 'error' ? 'error' : (agent.state === 'idle' ? 'breakroom' : 'writing'));
 
                 const idx = area === 'breakroom' ? idxBreak++ : area === 'error' ? idxError++ : idxWrite++;
-                const p = isDemo
+                let p = isDemo
                     ? randomPointInRect(getAreaRect(area))
                     : getAreaPoint(area, idx);
+                // YIMU 老板：固定坐镇独立老板办公室
+                if (/YIMU/i.test(agent.name || '')) p = { x: 224, y: 250 };
 
                 if (!guestSprites[id]) {
                     // 优先用图标：demo visitor 有专门映射
@@ -4028,10 +4018,28 @@ function toggleBrokerPanel() {
             this.load.spritesheet('guest_anim_6', '/static/guest_anim_6.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 32, frameHeight: 32 });
         }
 
+        function drawOfficeRooms(scene) {
+            const OFFICE_ROOMS = [
+                { name: '🚪 老板办公室 · YIMU', x: 24,   y: 24,  w: 400,  h: 400, color: 0x3b2f52, border: 0x9b8bc0 },
+                { name: '💻 开发区',            x: 444,  y: 24,  w: 1132, h: 460, color: 0x24384a, border: 0x6f98b8 },
+                { name: '🔬 调研区',            x: 24,   y: 444, w: 400,  h: 480, color: 0x24402f, border: 0x6fb88a },
+                { name: '☕ 休息区',            x: 444,  y: 504, w: 640,  h: 420, color: 0x453724, border: 0xc0a26f },
+                { name: '🐛 Bug 区',            x: 1104, y: 504, w: 472,  h: 250, color: 0x4a2626, border: 0xd07a7a },
+                { name: '🖥 服务器区',          x: 1104, y: 774, w: 472,  h: 150, color: 0x26263a, border: 0x7a7ad0 }
+            ];
+            scene.add.rectangle(scene.scale.width / 2, scene.scale.height / 2, scene.scale.width, scene.scale.height, 0x141420).setDepth(-100);
+            OFFICE_ROOMS.forEach(r => {
+                const f = scene.add.rectangle(r.x + r.w / 2, r.y + r.h / 2, r.w, r.h, r.color, 1).setDepth(-90);
+                f.setStrokeStyle(3, r.border, 1);
+                scene.add.text(r.x + 12, r.y + 8, r.name, { fontFamily: 'ArkPixel, monospace', fontSize: '16px', fill: '#' + r.border.toString(16).padStart(6, '0'), stroke: '#000', strokeThickness: 3 }).setOrigin(0, 0).setDepth(-80);
+            });
+        }
+
         function create() {
             game = this;
             hideGameSkeleton();
-            officeBgSprite = this.add.image(640, 360, 'office_bg');
+            officeBgSprite = this.add.image(640, 360, 'office_bg').setVisible(false);
+            drawOfficeRooms(this);
 
             // Place furniture: Sofa
             // NOTE: coordinates are interpreted as the TOP-LEFT corner of the sprite
@@ -4040,11 +4048,12 @@ function toggleBrokerPanel() {
             sofa = this.add.sprite(IDLE_SOFA_ANCHOR.x, IDLE_SOFA_ANCHOR.y, 'sofa_idle').setOrigin(0.5);
             sofa.setDepth(10);
             areas = {
-                door: { x: 640, y: 550 }, // 墙的门（偏下 1/3 位置）
-                writing: { x: 320, y: 360 }, // 左 1/3 中间（办公桌）
-                researching: { x: 320, y: 360 }, // 左 1/3 中间（研究也在办公区
-                error: { x: 1066, y: 180 }, // 右 1/3 上 1/2（服务器区
-                breakroom: { x: IDLE_SOFA_ANCHOR.x, y: IDLE_SOFA_ANCHOR.y } // 与 sofa-idle-v3 同中心锚点
+                door: { x: 800, y: 960 },
+                boss: { x: 224, y: 250 },        // 老板办公室（YIMU）
+                writing: { x: 620, y: 210 },      // 开发区（Star 工位）
+                researching: { x: 224, y: 684 },  // 调研区
+                error: { x: 1340, y: 630 },       // Bug 区
+                breakroom: { x: IDLE_SOFA_ANCHOR.x, y: IDLE_SOFA_ANCHOR.y } // 休息区
             };
 
             // 创建 Star 角色待命动画（每次先移除旧定义，确保不复用历史动画）
@@ -4163,7 +4172,7 @@ function toggleBrokerPanel() {
             // Random cat at (94,557)
             const catsFrameCount = (this.textures.get('cats')?.frameTotal || 1) - 1;
             const randomCatFrame = Math.floor(Math.random() * Math.max(1, catsFrameCount));
-            const cat = game.add.sprite(94, 557, 'cats', randomCatFrame).setOrigin(0.5);
+            const cat = game.add.sprite(980, 880, 'cats', randomCatFrame).setOrigin(0.5);
             cat.setDepth(2000); // top layer
             cat.setInteractive({ useHandCursor: true });
             // Expose to global for click handler
@@ -4175,7 +4184,7 @@ function toggleBrokerPanel() {
             });
 
             // Coffee machine at (659,397) - animated sprite + shadow
-            const coffeeMachineShadow = this.add.image(659, 397, 'coffee_machine_shadow').setOrigin(0.5);
+            const coffeeMachineShadow = this.add.image(520, 640, 'coffee_machine_shadow').setOrigin(0.5);
             coffeeMachineShadow.setDepth(98);
             const coffeeFrameMax = Math.max(0, (this.textures.get('coffee_machine')?.frameTotal || 1) - 2);
             if (this.anims.exists('coffee_machine')) {
@@ -4187,7 +4196,7 @@ function toggleBrokerPanel() {
                 frameRate: 12.5,
                 repeat: -1
             });
-            const coffeeMachine = this.add.sprite(659, 397, 'coffee_machine').setOrigin(0.5);
+            const coffeeMachine = this.add.sprite(520, 640, 'coffee_machine').setOrigin(0.5);
             coffeeMachine.setDepth(99);
             coffeeMachine.anims.play('coffee_machine', true);
 
@@ -4199,20 +4208,24 @@ function toggleBrokerPanel() {
                 frameRate: 6,
                 repeat: -1
             });
-            serverroom = this.add.sprite(1021, 142, 'serverroom', 0).setOrigin(0.5);
+            serverroom = this.add.sprite(1340, 848, 'serverroom', 0).setOrigin(0.5);
             serverroom.setDepth(2);
             // 默认 idle: 静止第0帧
             serverroom.anims.stop();
             serverroom.setFrame(0);
 
-            // Desk at (218,417) (v2)
-            const desk = this.add.image(218, 417, 'desk_v2').setOrigin(0.5);
+            // Desk (Star 工位, 开发区) + 更多开发区桌 + 老板桌（扩容 v2）
+            const desk = this.add.image(620, 250, 'desk_v2').setOrigin(0.5);
             desk.setDepth(1001);  // desk above starWorking
+            [[1000, 250], [1380, 250], [810, 430], [1190, 430], [1000, 430]].forEach(function(d) {
+                game.add.image(d[0], d[1], 'desk_v2').setOrigin(0.5).setDepth(1001);
+            });
+            game.add.image(224, 300, 'desk_v2').setOrigin(0.5).setDepth(1001).setScale(1.1);
 
             // Random flower pot at (310,390), default scale 0.8 (top layer)
             const flowerFrameCount = Math.max(1, FLOWERS_FRAME_COLS * FLOWERS_FRAME_ROWS); // 动态帧数
             const randomFlowerFrame = Math.floor(Math.random() * flowerFrameCount);
-            const flower = this.add.sprite(310, 390, 'flowers', randomFlowerFrame).setOrigin(0.5);
+            const flower = this.add.sprite(224, 275, 'flowers', randomFlowerFrame).setOrigin(0.5);
             flower.setScale(0.8);
             flower.setDepth(1100); // highest among desk/starWorking
             flower.setInteractive({ useHandCursor: true });
@@ -4241,14 +4254,14 @@ function toggleBrokerPanel() {
             });
 
             // Error bug character (moves between two points when state=error)
-            const errorBug = this.add.sprite(1007, 221, 'error_bug', 0).setOrigin(0.5);
+            const errorBug = this.add.sprite(1300, 630, 'error_bug', 0).setOrigin(0.5);
             errorBug.setDepth(50); // above serverroom, below desk/bubbles
             errorBug.setVisible(false);
             errorBug.setScale(0.9); // shrink 10%
             errorBug.anims.play('error_bug', true);
             window.errorBug = errorBug;
             window.errorBugDir = 1; // 1 -> to right, -1 -> to left
-            const starWorking = this.add.sprite(217, 343, 'star_working', 0).setOrigin(0.5);
+            const starWorking = this.add.sprite(620, 200, 'star_working', 0).setOrigin(0.5);
             starWorking.setVisible(false);
             starWorking.setScale(0.9);
             starWorking.setDepth(900);  // starWorking under desk so desk partially covers it
@@ -4272,7 +4285,7 @@ function toggleBrokerPanel() {
                 repeat: -1
             });
             }
-            syncAnimSprite = this.add.sprite(1157, 592, 'sync_anim', 0).setOrigin(0.5);
+            syncAnimSprite = this.add.sprite(1480, 700, 'sync_anim', 0).setOrigin(0.5);
             syncAnimSprite.setDepth(40);
             // default show first frame only
             syncAnimSprite.anims.stop();
@@ -4509,9 +4522,9 @@ function toggleBrokerPanel() {
                     if (!window.errorBug.anims.isPlaying || window.errorBug.anims.currentAnim?.key !== 'error_bug') {
                         window.errorBug.anims.play('error_bug', true);
                     }
-                    // 固定在原地（按需求取消 error 移动路径）
-                    window.errorBug.x = 1007;
-                    window.errorBug.y = 221;
+                    // 固定在 Bug 区（扩容 v2）
+                    window.errorBug.x = 1300;
+                    window.errorBug.y = 630;
                 } else {
                     window.errorBug.setVisible(false);
                     window.errorBug.anims.stop();
