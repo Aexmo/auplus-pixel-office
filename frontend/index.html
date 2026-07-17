@@ -1290,13 +1290,13 @@
             <div id="creator-sel-name" style="font-size:13px; color:#bbf7d0; margin-bottom:6px;">—</div>
             <div style="display:flex; align-items:center; gap:6px;">
                 <span style="font-size:11px; color:#94a3b8;">大小</span>
-                <input id="creator-sel-scale" type="range" min="0.3" max="2.5" step="0.05" value="1" style="flex:1;">
+                <input id="creator-sel-scale" type="range" min="0.3" max="4" step="0.05" value="1" style="flex:1;">
                 <span id="creator-sel-scale-val" style="font-size:11px; width:42px;">×1.00</span>
             </div>
             <button id="creator-sel-delete" style="margin-top:8px; width:100%; padding:6px; font-family:ArkPixel,monospace; font-size:12px; cursor:pointer; border:1px solid #7f1d1d; border-radius:5px; background:#450a0a; color:#fca5a5;">🗑 删除该物品</button>
         </div>
         <div style="font-size:12px; color:#cbd5e1; margin-bottom:4px;">物品栏</div>
-        <div id="creator-palette" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;"></div>
+        <div id="creator-palette"></div>
         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
             <button id="creator-reset" style="padding:6px 8px; font-family:ArkPixel,monospace; font-size:11px; cursor:pointer; border:1px solid #555; border-radius:5px; background:#2a2a35; color:#e5e7eb;">恢复默认</button>
             <span id="creator-save-status" style="font-size:11px; color:#94a3b8;"></span>
@@ -1312,6 +1312,7 @@
     </div>
 
     <script src="/static/vendor/phaser-3.80.1.min.js?v={{VERSION_TIMESTAMP}}"></script>
+    <script src="/static/extra-props-meta.js?v={{VERSION_TIMESTAMP}}"></script>
     <script>
         // 简易中英文切换
         let uiLang = localStorage.getItem('uiLang') || 'en';
@@ -4011,26 +4012,75 @@ function toggleBrokerPanel() {
             { id: 'boxes_server',  key: 'prop_boxes',      x: 1512, y: 908, layer: 'floor' }
         ];
         const EDITOR_PALETTE = [
-            { key: 'desk_v2',          name: '办公桌',  layer: 'desk',  type: 'desk',    scale: 0.68, thumb: '/static/desk-v3.webp' },
-            { key: 'prop_meeting_table', name: '会议桌', layer: 'floor', type: 'desk' },
-            { key: 'prop_bookshelf',   name: '书架',    layer: 'floor', type: 'storage' },
-            { key: 'prop_cabinet',     name: '文件柜',  layer: 'floor', type: 'storage' },
-            { key: 'prop_boxes',       name: '纸箱',    layer: 'floor', type: 'storage' },
-            { key: 'prop_printer',     name: '打印机',  layer: 'floor', type: 'machine' },
-            { key: 'prop_watercooler', name: '饮水机',  layer: 'floor', type: 'machine' },
-            { key: 'prop_vending',     name: '售货机',  layer: 'floor', type: 'machine' },
-            { key: 'prop_fridge',      name: '冰箱',    layer: 'floor', type: 'machine' },
-            { key: 'prop_kitchen',     name: '厨房台',  layer: 'floor', type: 'machine' },
-            { key: 'prop_fireplace',   name: '壁炉',    layer: 'floor', type: 'decor' },
-            { key: 'plants',           name: '植物',    layer: 'floor', type: 'decor', sheet: 16, scale: 0.75 },
-            { key: 'prop_caution',     name: '警示牌',  layer: 'floor', type: 'decor' },
-            { key: 'prop_rug',         name: '地毯',    layer: 'under', type: 'decor' },
-            { key: 'prop_mat',         name: '门垫',    layer: 'under', type: 'decor' },
-            { key: 'prop_trophy',      name: '奖杯架',  layer: 'wall',  type: 'decor' },
-            { key: 'prop_clock',       name: '挂钟',    layer: 'wall',  type: 'decor' },
-            { key: 'prop_tv',          name: '数据看板', layer: 'wall', type: 'decor' },
-            { key: 'prop_whiteboard',  name: '白板',    layer: 'wall',  type: 'decor' },
-            { key: 'prop_pinboard',    name: '公告板',  layer: 'wall',  type: 'decor' }
+            // ---- 家具 ----
+            { cat: '家具', key: 'desk_v2',            name: '办公桌', layer: 'desk',  type: 'desk', scale: 0.68, thumb: '/static/desk-v3.webp' },
+            { cat: '家具', key: 'prop_meeting_table', name: '会议桌', layer: 'floor', type: 'desk' },
+            { cat: '家具', key: 'prop2_sofa',         name: '蓝沙发', layer: 'floor', type: 'seat' },
+            { cat: '家具', key: 'prop2_armchair',     name: '单人沙发', layer: 'floor', type: 'seat' },
+            { cat: '家具', key: 'prop2_beanbag',      name: '懒人沙发', layer: 'floor', type: 'seat' },
+            { cat: '家具', key: 'prop2_chair',        name: '办公椅', layer: 'floor', type: 'seat' },
+            { cat: '家具', key: 'prop2_stool',        name: '圆凳',   layer: 'floor', type: 'seat' },
+            { cat: '家具', key: 'prop2_bench',        name: '长凳',   layer: 'floor', type: 'seat' },
+            { cat: '家具', key: 'prop2_sidetable',    name: '边几',   layer: 'floor', type: 'desk' },
+            { cat: '家具', key: 'prop2_coffeetable',  name: '咖啡桌', layer: 'floor', type: 'desk' },
+            { cat: '家具', key: 'prop2_tvstand',      name: '电视柜', layer: 'floor', type: 'decor' },
+            { cat: '家具', key: 'prop2_bar',          name: '吧台',   layer: 'floor', type: 'desk' },
+            { cat: '家具', key: 'prop_bookshelf',     name: '书架',   layer: 'floor', type: 'storage' },
+            { cat: '家具', key: 'prop2_bookcase_low', name: '矮书柜', layer: 'floor', type: 'storage' },
+            { cat: '家具', key: 'prop_cabinet',       name: '文件柜', layer: 'floor', type: 'storage' },
+            { cat: '家具', key: 'prop2_locker',       name: '更衣柜', layer: 'floor', type: 'storage' },
+            { cat: '家具', key: 'prop2_partition',    name: '屏风',   layer: 'floor', type: 'decor' },
+            { cat: '家具', key: 'prop2_coatrack',     name: '衣帽架', layer: 'floor', type: 'decor' },
+            // ---- 设备 ----
+            { cat: '设备', key: 'prop_printer',       name: '打印机', layer: 'floor', type: 'machine' },
+            { cat: '设备', key: 'prop_watercooler',   name: '饮水机', layer: 'floor', type: 'machine' },
+            { cat: '设备', key: 'prop_vending',       name: '售货机', layer: 'floor', type: 'machine' },
+            { cat: '设备', key: 'prop_fridge',        name: '冰箱',   layer: 'floor', type: 'machine' },
+            { cat: '设备', key: 'prop_kitchen',       name: '厨房台', layer: 'floor', type: 'machine' },
+            { cat: '设备', key: 'prop2_arcade',       name: '街机',   layer: 'floor', type: 'machine' },
+            { cat: '设备', key: 'prop2_aquarium',     name: '鱼缸',   layer: 'floor', type: 'decor' },
+            { cat: '设备', key: 'prop2_floorlamp',    name: '落地灯', layer: 'floor', type: 'decor' },
+            { cat: '设备', key: 'prop2_fan',          name: '风扇',   layer: 'floor', type: 'machine' },
+            { cat: '设备', key: 'prop2_vacuum',       name: '扫地机', layer: 'floor', type: 'machine' },
+            { cat: '设备', key: 'prop2_trashbin',     name: '垃圾桶', layer: 'floor', type: 'decor' },
+            { cat: '设备', key: 'prop2_safe',         name: '保险柜', layer: 'floor', type: 'storage' },
+            // ---- 装饰 ----
+            { cat: '装饰', key: 'prop_fireplace',     name: '壁炉',   layer: 'floor', type: 'decor' },
+            { cat: '装饰', key: 'plants',             name: '植物',   layer: 'floor', type: 'decor', sheet: 16, scale: 0.75 },
+            { cat: '装饰', key: 'posters',            name: '海报',   layer: 'decor', type: 'decor', sheet: 'auto', scale: 0.7 },
+            { cat: '装饰', key: 'cats',               name: '猫咪',   layer: 'floor', type: 'decor', sheet: 'auto', scale: 0.62 },
+            { cat: '装饰', key: 'prop_boxes',         name: '纸箱',   layer: 'floor', type: 'storage' },
+            { cat: '装饰', key: 'prop_caution',       name: '警示牌', layer: 'floor', type: 'decor' },
+            { cat: '装饰', key: 'prop2_globe',        name: '地球仪', layer: 'floor', type: 'decor' },
+            { cat: '装饰', key: 'prop2_dartboard',    name: '飞镖盘', layer: 'wall',  type: 'decor' },
+            // ---- 墙面 ----
+            { cat: '墙面', key: 'prop2_window_night',   name: '夜景窗', layer: 'wall', type: 'decor' },
+            { cat: '墙面', key: 'prop2_window_blinds',  name: '百叶窗', layer: 'wall', type: 'decor' },
+            { cat: '墙面', key: 'prop2_window_curtain', name: '窗帘窗', layer: 'wall', type: 'decor' },
+            { cat: '墙面', key: 'prop2_painting_mtn',   name: '山景画', layer: 'wall', type: 'decor' },
+            { cat: '墙面', key: 'prop2_painting_abs',   name: '抽象画', layer: 'wall', type: 'decor' },
+            { cat: '墙面', key: 'prop2_painting_sun',   name: '日落画', layer: 'wall', type: 'decor' },
+            { cat: '墙面', key: 'prop2_neon',           name: '霓虹灯牌', layer: 'wall', type: 'decor' },
+            { cat: '墙面', key: 'prop2_wallshelf',      name: '壁挂搁板', layer: 'wall', type: 'decor' },
+            { cat: '墙面', key: 'prop_trophy',          name: '奖杯架', layer: 'wall', type: 'decor' },
+            { cat: '墙面', key: 'prop_clock',           name: '挂钟',   layer: 'wall', type: 'decor' },
+            { cat: '墙面', key: 'prop_tv',              name: '数据看板', layer: 'wall', type: 'decor' },
+            { cat: '墙面', key: 'prop_whiteboard',      name: '白板',   layer: 'wall', type: 'decor' },
+            { cat: '墙面', key: 'prop_pinboard',        name: '公告板', layer: 'wall', type: 'decor' },
+            // ---- 地板与地垫 ----
+            { cat: '地板与地垫', key: 'prop_rug',        name: '圆地毯', layer: 'under', type: 'decor' },
+            { cat: '地板与地垫', key: 'prop_mat',        name: '门垫',   layer: 'under', type: 'decor' },
+            { cat: '地板与地垫', key: 'patch_wood',      name: '木地板', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与地垫', key: 'patch_wood2',     name: '原木地板', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与地垫', key: 'patch_darkwood',  name: '深木地板', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与地垫', key: 'patch_carpet',    name: '紫地毯砖', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与地垫', key: 'patch_carpetblue', name: '蓝地毯砖', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与地垫', key: 'patch_stone',     name: '石板地', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与地垫', key: 'patch_marble',    name: '大理石', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与地垫', key: 'patch_checker',   name: '黑白棋盘', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与地垫', key: 'patch_concrete',  name: '水泥地', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与地垫', key: 'patch_tech',      name: '科技地砖', layer: 'floorpatch', type: 'floor' },
+            { cat: '地板与地垫', key: 'patch_grass',     name: '草地',   layer: 'floorpatch', type: 'floor' }
         ];
         window.editorItems = {};
         window.editorMode = false;
@@ -4039,6 +4089,7 @@ function toggleBrokerPanel() {
         let editorSaveTimer = null;
 
         function editorDepthFor(layer, y) {
+            if (layer === 'floorpatch') return -94;   // 地板贴片：仅盖住基础地板
             if (layer === 'under') return -91;
             if (layer === 'wall') return -68;
             if (layer === 'desk') return 1001;
@@ -4088,7 +4139,7 @@ function toggleBrokerPanel() {
             box.style.display = 'block';
             const pal = EDITOR_PALETTE.find(p => p.key === it.spr.texture.key);
             document.getElementById('creator-sel-name').textContent =
-                (pal ? pal.name : it.spr.texture.key) + (it.custom ? '（新增）' : '');
+                (it.dispName || (pal ? pal.name : it.spr.texture.key)) + (it.custom ? '（新增）' : '');
             document.getElementById('creator-sel-scale').value = it.spr.scaleX.toFixed(2);
             document.getElementById('creator-sel-scale-val').textContent = '×' + it.spr.scaleX.toFixed(2);
         }
@@ -4099,7 +4150,7 @@ function toggleBrokerPanel() {
                 if (it.custom) {
                     if (s.active && s.visible) {
                         custom.push({ id, key: s.texture.key, frame: it.frame, x: s.x, y: s.y,
-                            scale: +s.scaleX.toFixed(3), layer: it.layer, type: it.type });
+                            scale: +s.scaleX.toFixed(3), layer: it.layer, type: it.type, n: it.dispName });
                     }
                     return;
                 }
@@ -4137,6 +4188,7 @@ function toggleBrokerPanel() {
             if (rec.scale) spr.setScale(rec.scale);
             registerEditorItem(scene, rec.id, spr, rec.layer || 'floor', true, rec.type || '');
             window.editorItems[rec.id].frame = rec.frame;
+            window.editorItems[rec.id].dispName = rec.n;
             return spr;
         }
         async function loadEditorPlacements(scene) {
@@ -4158,12 +4210,19 @@ function toggleBrokerPanel() {
         }
         function editorAddFromPalette(pal) {
             const cam = game.cameras.main;
+            let frame;
+            if (pal.frameFixed !== undefined) {
+                frame = pal.frameFixed;                       // 外部素材包：固定帧
+            } else if (pal.sheet === 'auto') {                // 复用仓库图集：随机帧
+                frame = Math.floor(Math.random() * Math.max(1, (game.textures.get(pal.key)?.frameTotal || 2) - 1));
+            } else if (pal.sheet) {
+                frame = Math.floor(Math.random() * pal.sheet);
+            }
             const rec = {
                 id: 'c' + Date.now().toString(36) + Math.floor(Math.random() * 999),
-                key: pal.key,
-                frame: pal.sheet ? Math.floor(Math.random() * pal.sheet) : undefined,
+                key: pal.key, frame,
                 x: Math.round(cam.midPoint.x), y: Math.round(cam.midPoint.y),
-                scale: pal.scale || 1, layer: pal.layer, type: pal.type
+                scale: pal.scale || 1, layer: pal.layer, type: pal.type, n: pal.name
             };
             spawnCustomItem(game, rec);
             editorSelect(rec.id);
@@ -4193,21 +4252,83 @@ function toggleBrokerPanel() {
         }
         function buildCreatorPanel() {
             if (document.getElementById('creator-panel-grid-built')) return;
-            const grid = document.getElementById('creator-palette');
-            EDITOR_PALETTE.forEach(pal => {
+            const root = document.getElementById('creator-palette');
+            const SHEET_EMOJI = { plants: '🌿', posters: '🖼', cats: '🐱' };
+            const makeCell = (pal) => {
                 const cell = document.createElement('div');
                 cell.style.cssText = 'cursor:pointer;text-align:center;padding:6px 2px;border:1px solid #3a3a4a;border-radius:6px;background:#23232e;';
                 const thumbUrl = pal.thumb || (pal.sheet ? null : '/static/' + pal.key + '.png');
                 cell.innerHTML = (thumbUrl
-                    ? '<img src="' + thumbUrl + '" style="max-width:44px;max-height:38px;image-rendering:pixelated;">'
-                    : '<div style="font-size:24px;line-height:38px;">🌿</div>')
+                    ? '<img src="' + thumbUrl + '" loading="lazy" style="max-width:44px;max-height:38px;image-rendering:pixelated;">'
+                    : '<div style="font-size:24px;line-height:38px;">' + (SHEET_EMOJI[pal.key] || '📦') + '</div>')
                     + '<div style="font-size:11px;color:#cbd5e1;margin-top:2px;">' + pal.name + '</div>';
                 cell.onclick = () => editorAddFromPalette(pal);
-                grid.appendChild(cell);
+                return cell;
+            };
+            const makeGrid = () => {
+                const g = document.createElement('div');
+                g.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:6px;';
+                return g;
+            };
+            // 内置素材：按分类分组
+            const cats = [];
+            EDITOR_PALETTE.forEach(p => { if (!cats.includes(p.cat)) cats.push(p.cat); });
+            cats.forEach(cat => {
+                const head = document.createElement('div');
+                head.style.cssText = 'font-size:12px;color:#fbbf24;margin:8px 0 4px;';
+                head.textContent = '▪ ' + cat;
+                root.appendChild(head);
+                const g = makeGrid();
+                EDITOR_PALETTE.filter(p => p.cat === cat).forEach(p => g.appendChild(makeCell(p)));
+                root.appendChild(g);
             });
+            // CC0 外部素材包：折叠分组（缩略图用大图集 background-position 切片）
+            if (window.EXTRA_PROPS && window.EXTRA_PROPS.sheets && window.EXTRA_PROPS.sheets.length) {
+                const sheetInfo = {};
+                window.EXTRA_PROPS.sheets.forEach(s => { sheetInfo[s.key] = s; });
+                const GROUPS = [
+                    ['extra_indoor', 0, '📦 素材包·室内物件', 'floor'],
+                    ['extra_indoor', 1, '🧱 素材包·室内图块', 'floorpatch'],
+                    ['extra_city',   0, '📦 素材包·城市物件', 'floor'],
+                    ['extra_city',   1, '🧱 素材包·城市图块', 'floorpatch']
+                ];
+                GROUPS.forEach(([key, wantTile, title, layer]) => {
+                    const frames = window.EXTRA_PROPS.items
+                        .filter(it => it[0] === key && it[2] === wantTile)
+                        .map(it => it[1]);
+                    if (!frames.length) return;
+                    const info = sheetInfo[key];
+                    const det = document.createElement('details');
+                    det.style.cssText = 'margin-top:8px;';
+                    const sum = document.createElement('summary');
+                    sum.style.cssText = 'font-size:12px;color:#93c5fd;cursor:pointer;';
+                    sum.textContent = title + '（' + frames.length + '）';
+                    det.appendChild(sum);
+                    const g = document.createElement('div');
+                    g.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px;';
+                    const T = 44;   // 缩略格尺寸
+                    frames.forEach(f => {
+                        const col = f % info.cols, row = Math.floor(f / info.cols);
+                        const cell = document.createElement('div');
+                        cell.style.cssText = 'cursor:pointer;width:' + T + 'px;height:' + T + 'px;'
+                            + 'border:1px solid #3a3a4a;border-radius:4px;background-color:#23232e;'
+                            + 'background-image:url(/static/' + info.file + ');'
+                            + 'background-size:' + (info.cols * T) + 'px auto;'
+                            + 'background-position:-' + (col * T) + 'px -' + (row * T) + 'px;'
+                            + 'image-rendering:pixelated;';
+                        cell.onclick = () => editorAddFromPalette({
+                            key, name: (wantTile ? '图块' : '素材') + '#' + f,
+                            layer, type: wantTile ? 'floor' : 'decor', frameFixed: f
+                        });
+                        g.appendChild(cell);
+                    });
+                    det.appendChild(g);
+                    root.appendChild(det);
+                });
+            }
             const flag = document.createElement('span');
             flag.id = 'creator-panel-grid-built';
-            grid.appendChild(flag);
+            root.appendChild(flag);
         }
         function setEditorMode(on) {
             window.editorMode = on;
@@ -4232,7 +4353,7 @@ function toggleBrokerPanel() {
             loadingProgressContainer = document.getElementById('loading-progress-container');
             
             // 设置资源总数（全部首屏加载：装饰也第一时间出现）
-            totalAssets = 42;
+            totalAssets = 88;
             loadedAssets = 0;
             
             // 加载进度监听
@@ -4308,6 +4429,26 @@ function toggleBrokerPanel() {
              'boxes', 'fireplace', 'caution', 'trophy', 'mat', 'plate'].forEach((k) => {
                 this.load.image('prop_' + k, '/static/prop_' + k + '.png?v={{VERSION_TIMESTAMP}}');
             });
+            // v3.1 二期道具（自绘）
+            ['armchair', 'sofa', 'beanbag', 'chair', 'stool', 'bench', 'sidetable',
+             'coffeetable', 'tvstand', 'bar', 'locker', 'bookcase_low', 'partition',
+             'coatrack', 'arcade', 'aquarium', 'floorlamp', 'fan', 'vacuum', 'trashbin',
+             'safe', 'window_night', 'window_blinds', 'window_curtain', 'painting_mtn',
+             'painting_abs', 'painting_sun', 'neon', 'wallshelf', 'globe', 'dartboard'].forEach((k) => {
+                this.load.image('prop2_' + k, '/static/prop2_' + k + '.png?v={{VERSION_TIMESTAMP}}');
+            });
+            // 地板贴片（floorpatch 层）
+            ['wood', 'wood2', 'carpet', 'tech', 'stone', 'marble', 'darkwood',
+             'checker', 'concrete', 'grass', 'carpetblue'].forEach((k) => {
+                this.load.image('patch_' + k, '/static/patch_' + k + '.png?v={{VERSION_TIMESTAMP}}');
+            });
+            // CC0 外部素材包（Kenney roguelike, 见 extra-props-meta.js）
+            if (window.EXTRA_PROPS && window.EXTRA_PROPS.sheets) {
+                window.EXTRA_PROPS.sheets.forEach((s) => {
+                    this.load.spritesheet(s.key, '/static/' + s.file + '?v={{VERSION_TIMESTAMP}}',
+                        { frameWidth: 64, frameHeight: 64 });
+                });
+            }
         }
 
         // ============ 像素办公室 v3：整栋连通式地图（墙体+通道+道具+光效） ============
