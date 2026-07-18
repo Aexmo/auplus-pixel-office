@@ -3669,9 +3669,11 @@ function toggleBrokerPanel() {
             { furnId: 'cmrp7fpni460', dx: 0, dy: 6,   orient: 'back',  state: 'playing', under: true, occ: 0.5 },  // 街机长凳:背对玩(满意)
             { furnId: 'cmrp6yk1q67',  dx: 0, dy: -12, orient: 'back',  state: 'sleeping', under: true, occ: 0.35 }, // 沙发:睡觉背面=慵懒窝沙发上(坐深进座位)
             { furnId: 'cmrp6dsw7329', dx: 0, dy: -46, orient: 'front', state: 'eating', under: false }, // 厨房柜台:站台面前方地板正面吃
-            { furnId: 'cmrp6zetr628', dx: 0, dy: -46, orient: 'front', state: 'eating', under: false }, // 吧台左:站前方地板
-            { furnId: 'cmrp6zoed925', dx: 0, dy: -46, orient: 'front', state: 'eating', under: false }, // 吧台右:站前方地板
-            { furnId: 'cmrp6eem9458', dx: 0, dy: -70, orient: 'front', state: 'eating', under: false }, // 酒柜:站前方地板
+            { furnId: 'cmrp6eem9458', dx: 0, dy: -67, orient: 'back',  state: 'idle',   under: false }, // 酒柜:背对面朝柜(人覆盖柜下部)
+            { furnId: 'cmrp6zetr628', dx: 0, dy: -10, orient: 'front', state: 'idle',   under: true, occ: 0.5 }, // 吧台左·上侧:吧台遮身,正面对屏幕
+            { furnId: 'cmrp6zetr628', dx: 0, dy: -58, orient: 'back',  state: 'idle',   under: false }, // 吧台左·下侧:背对屏幕,人覆盖吧台
+            { furnId: 'cmrp6zoed925', dx: 0, dy: -10, orient: 'front', state: 'idle',   under: true, occ: 0.5 }, // 吧台右·上侧:吧台遮身正面
+            { furnId: 'cmrp6zoed925', dx: 0, dy: -58, orient: 'back',  state: 'idle',   under: false }, // 吧台右·下侧:背对人覆盖吧台
         ];
         function furnItem(id) {
             const it = window.editorItems && window.editorItems[id];
