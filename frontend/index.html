@@ -1334,6 +1334,15 @@
         <div style="font-size:11px; color:#94a3b8; line-height:1.5; margin-bottom:8px;">
             点击场景中的物品选中 → 拖动移动；下方可调大小/删除。点物品栏图标可新增（落在视野中央）。改动自动保存。
         </div>
+        <button id="creator-batch-toggle" onclick="toggleBatchMode()" style="width:100%; margin-bottom:6px; padding:6px; font-family:ArkPixel,monospace; font-size:12px; cursor:pointer; border:1px solid #475569; border-radius:5px; background:#1f2937; color:#93c5fd;">☑ 批量选择</button>
+        <div id="creator-batch-box" style="display:none; border:1px solid #3b82f6; border-radius:6px; padding:8px; margin-bottom:8px; background:#0f1e33;">
+            <div style="font-size:11px; color:#93c5fd; margin-bottom:6px;">点场景物品逐个勾选（再点取消）；<span id="creator-batch-count">已选 0</span></div>
+            <div style="display:flex; gap:6px;">
+                <button onclick="batchStoreSelected()" style="flex:1; padding:6px; font-family:ArkPixel,monospace; font-size:11px; cursor:pointer; border:1px solid #92742b; border-radius:5px; background:#3a2f10; color:#fbbf24;">📦 批量入仓库</button>
+                <button onclick="batchDeleteSelected()" style="flex:1; padding:6px; font-family:ArkPixel,monospace; font-size:11px; cursor:pointer; border:1px solid #7f1d1d; border-radius:5px; background:#450a0a; color:#fca5a5;">🗑 批量删除(密码)</button>
+            </div>
+            <button onclick="batchClearSelection()" style="width:100%; margin-top:5px; padding:5px; font-family:ArkPixel,monospace; font-size:11px; cursor:pointer; border:1px solid #555; border-radius:5px; background:#2a2a35; color:#cbd5e1;">清空勾选</button>
+        </div>
         <div id="creator-sel-box" style="display:none; border:1px solid #4ade80; border-radius:6px; padding:8px; margin-bottom:8px; background:#1a2b1f;">
             <div id="creator-sel-name" style="font-size:13px; color:#bbf7d0; margin-bottom:6px;">—</div>
             <div style="display:flex; align-items:center; gap:6px;">
@@ -4365,19 +4374,83 @@ function toggleBrokerPanel() {
             scene.input.setDraggable(spr, false);
             if (!spr.__wasInteractive) spr.input.enabled = false;
         }
+        window.editorBatchMode = false;
+        window.editorBatchSet = new Set();
         function editorSelBoxDraw() {
             const gfx = window.editorSelGfx;
             if (!gfx) return;
             gfx.clear();
             if (window.editorSelX) window.editorSelX.setVisible(false);
+            if (!window.editorMode) return;
+            // 批量选中：蓝框高亮所有勾选项
+            if (window.editorBatchMode && window.editorBatchSet.size) {
+                gfx.lineStyle(2, 0x3b82f6, 1);
+                window.editorBatchSet.forEach(id2 => {
+                    const it2 = window.editorItems[id2];
+                    if (it2 && it2.spr.visible) {
+                        const bb = it2.spr.getBounds();
+                        gfx.strokeRect(bb.x - 3, bb.y - 3, bb.width + 6, bb.height + 6);
+                    }
+                });
+            }
             const it = window.editorItems[window.editorSelectedId];
-            if (!window.editorMode || !it || !it.spr.visible) return;
+            if (!it || !it.spr.visible) return;
             const b = it.spr.getBounds();
             gfx.lineStyle(2, 0x4ade80, 1).strokeRect(b.x - 3, b.y - 3, b.width + 6, b.height + 6);
             gfx.fillStyle(0x4ade80, 1).fillRect(b.x - 3, b.y - 3, 6, 6);
-            if (window.editorSelX) {
+            if (window.editorSelX && !window.editorBatchMode) {
                 window.editorSelX.setPosition(b.x + b.width + 10, b.y - 10).setVisible(true);
             }
+        }
+        function toggleBatchMode() {
+            window.editorBatchMode = !window.editorBatchMode;
+            const btn = document.getElementById('creator-batch-toggle');
+            const box = document.getElementById('creator-batch-box');
+            if (btn) { btn.style.background = window.editorBatchMode ? '#1e40af' : '#1f2937'; btn.textContent = window.editorBatchMode ? '☑ 批量选择（进行中）' : '☑ 批量选择'; }
+            if (box) box.style.display = window.editorBatchMode ? 'block' : 'none';
+            if (!window.editorBatchMode) window.editorBatchSet.clear();
+            window.editorSelectedId = null;
+            editorSelBoxDraw(); editorPanelSyncSel(); batchUpdateCount();
+        }
+        function batchToggleItem(id) {
+            if (window.editorBatchSet.has(id)) window.editorBatchSet.delete(id);
+            else window.editorBatchSet.add(id);
+            editorSelBoxDraw(); batchUpdateCount();
+        }
+        function batchUpdateCount() {
+            const el = document.getElementById('creator-batch-count');
+            if (el) el.textContent = '已选 ' + window.editorBatchSet.size;
+        }
+        function batchClearSelection() {
+            window.editorBatchSet.clear(); editorSelBoxDraw(); batchUpdateCount();
+        }
+        function batchStoreSelected() {
+            if (!window.editorBatchSet.size) return;
+            const ids = Array.from(window.editorBatchSet);
+            ids.forEach(id => { window.editorSelectedId = id; editorStoreSelected(); });
+            window.editorBatchSet.clear();
+            editorSelBoxDraw(); batchUpdateCount();
+        }
+        function batchDeleteSelected() {
+            if (!window.editorBatchSet.size) return;
+            const pwd = prompt('批量永久删除 ' + window.editorBatchSet.size + ' 个物品，输入密码：');
+            if (pwd === null) return;
+            if (pwd !== '3123119') { alert('密码错误，未删除'); return; }
+            window.editorBatchSet.forEach(id => {
+                const it = window.editorItems[id];
+                if (!it) return;
+                const texKey = it.spr.texture && it.spr.texture.key;
+                if (it.custom && texKey && texKey.indexOf('gen_') === 0) {
+                    fetch('/editor/generated/' + texKey, { method: 'DELETE' }).catch(() => {});
+                    window.__genAssets = (window.__genAssets || []).filter(g => g.key !== texKey);
+                }
+                if (it.custom || it.sign) { it.spr.destroy(); delete window.editorItems[id]; }
+                else editorSetItemVisible(it, false);
+            });
+            window.editorBatchSet.clear();
+            window.editorSelectedId = null;
+            editorSelBoxDraw(); editorPanelSyncSel(); batchUpdateCount();
+            queueEditorSave();
         }
         function editorSelect(id) {
             window.editorSelectedId = id;
@@ -6330,6 +6403,7 @@ function toggleBrokerPanel() {
             });
             this.input.on('gameobjectdown', (pointer, obj) => {
                 if (!window.editorMode) return;
+                if (window.editorBatchMode && obj.__editorId) { batchToggleItem(obj.__editorId); return; }
                 if (obj.__editorId) { editorSelect(obj.__editorId); return; }
                 if (obj.__wallId) {
                     if (confirm('拆除这段墙？（面板「♻️ 恢复墙体」可全部找回）')) {
@@ -6348,6 +6422,7 @@ function toggleBrokerPanel() {
                     return;
                 }
                 if (!obj.__editorId) return;
+                if (window.editorBatchMode) return;   // 批量模式下不拖动,只勾选
                 window.__editorDragging = true;
                 editorSelect(obj.__editorId);
             });
