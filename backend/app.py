@@ -741,7 +741,7 @@ def characters_personalities():
     return jsonify([n for n, _ in PERSONALITY_POOL])
 
 
-def _char_add_back_worker(job_id, only_id):
+def _char_add_back_worker(job_id, only_id, reuse_head=True):
     """给角色加背面朝向: 生成背面头 + 用背面身体rig合成9状态背面帧 → statesBack"""
     from PIL import Image as _Img
     import io as _io
@@ -761,33 +761,36 @@ def _char_add_back_worker(job_id, only_id):
             body = "body_f_back" if c.get("gender") == "female" else "body_m_back"
             if body not in rig:
                 continue
-            # 背面头: 用正面 idle 头做参照生成后脑勺(无脸)
-            idle_head = c["heads"].get("idle") or next(iter(c["heads"].values()))
-            hp = os.path.join(char_dir, idle_head)
-            if not os.path.exists(hp):
-                continue
-            ref = base64.b64encode(open(hp, "rb").read()).decode()
-            prompt = ("Reference image: this animal mascot head (front view). Create ONLY THE HEAD seen "
-                      "FROM BEHIND: the back of the exact same head showing the back fur/feathers and the "
-                      "ears/crest from behind, NO face visible, same colors and pixel art style. Big round head, "
-                      "no body no neck. Entire background solid pure magenta (#FF00FF), no text.")
-            raw = None
-            for _ in range(3):
-                try:
-                    raw = _genprop_call_gemini(api_key, prompt, hp)
-                    break
-                except Exception:
-                    import time as _t
-                    _t.sleep(6)
-            if raw is None:
-                continue
-            bh = _genprop_key_magenta(_Img.open(_io.BytesIO(raw)))
-            bb = bh.getbbox()
-            if not bb:
-                continue
-            bh = bh.crop(bb)
+            # 背面头: 复用已有(重合成时不重新生成),否则用正面 idle 头做参照生成后脑勺
             back_head_fn = f"headback_{cid}.png"
-            bh.save(os.path.join(char_dir, back_head_fn))
+            existing_bh = os.path.join(char_dir, back_head_fn)
+            if reuse_head and os.path.exists(existing_bh):
+                bh = _Img.open(existing_bh).convert("RGBA")
+            else:
+                idle_head = c["heads"].get("idle") or next(iter(c["heads"].values()))
+                hp = os.path.join(char_dir, idle_head)
+                if not os.path.exists(hp):
+                    continue
+                prompt = ("Reference image: this animal mascot head (front view). Create ONLY THE HEAD seen "
+                          "FROM BEHIND: the back of the exact same head showing the back fur/feathers and the "
+                          "ears/crest from behind, NO face visible, same colors and pixel art style. Big round head, "
+                          "no body no neck. Entire background solid pure magenta (#FF00FF), no text.")
+                raw = None
+                for _ in range(3):
+                    try:
+                        raw = _genprop_call_gemini(api_key, prompt, hp)
+                        break
+                    except Exception:
+                        import time as _t
+                        _t.sleep(6)
+                if raw is None:
+                    continue
+                bh = _genprop_key_magenta(_Img.open(_io.BytesIO(raw)))
+                bb = bh.getbbox()
+                if not bb:
+                    continue
+                bh = bh.crop(bb)
+                bh.save(existing_bh)
             statesBack = {}
             for st in CHAR_STATE_LIST:
                 frames = []
@@ -829,7 +832,7 @@ def characters_add_back():
     job_id = "cb_" + format(int(_t.time() * 1000), "x")
     with _char_lock:
         _char_jobs[job_id] = {"status": "running", "progress": 0, "total": 1}
-    t = threading.Thread(target=_char_add_back_worker, args=(job_id, only_id), daemon=True)
+    t = threading.Thread(target=_char_add_back_worker, args=(job_id, only_id, bool(data.get("reuse_head", True))), daemon=True)
     t.start()
     return jsonify({"ok": True, "jobId": job_id})
 
