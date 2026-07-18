@@ -1224,6 +1224,13 @@
                                 <option value="floor">🟫 地板纹理（可铺贴/换房间地板）</option>
                                 <option value="wall">🧱 墙面纹理（生成可摆放墙段）</option>
                             </select>
+                            <span class="asset-sub" style="min-width:34px;">朝向</span>
+                            <select id="ai-prop-facing" style="background:#1f2937;color:#e5e7eb;border:1px solid #475569;border-radius:6px;padding:5px 6px;font-family:ArkPixel,monospace;">
+                                <option value="front">⬇ 正面朝我们</option>
+                                <option value="back">⬆ 背面朝我们</option>
+                                <option value="left">↖ 左斜45°</option>
+                                <option value="right">↗ 右斜45°</option>
+                            </select>
                         </div>
                         <textarea id="asset-broker-prompt" placeholder="例如：绿色台球桌 / 圣诞树 / 波斯地毯纹理 / 红砖墙面"></textarea>
                         <div id="ai-prop-status" class="asset-sub" style="margin-top:6px;"></div>
@@ -5138,9 +5145,11 @@ function toggleBrokerPanel() {
             if (btn) btn.disabled = true;
             if (statusEl) statusEl.textContent = t('brokerGenerating');
             try {
+                const facingSel = document.getElementById('ai-prop-facing');
                 const res = await fetch('/editor/generate-prop', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ desc, kind: kindSel ? kindSel.value : 'object' })
+                    body: JSON.stringify({ desc, kind: kindSel ? kindSel.value : 'object',
+                        facing: facingSel ? facingSel.value : 'front' })
                 });
                 const j = await res.json();
                 if (!j.ok) throw new Error(j.msg || '生成失败');

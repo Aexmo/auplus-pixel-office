@@ -401,7 +401,15 @@ def editor_generate_prop():
             prompt = GENPROP_WALL_PROMPT.format(desc=desc)
             ref = os.path.join(frontend_dir, "wall_face.png")
         else:
-            prompt = GENPROP_OBJ_PROMPT.format(desc=desc)
+            # 朝向: front正面/back背面/left左斜45/right右斜45
+            facing = (data.get("facing") or "front")
+            FACE_TXT = {
+                "front": ", facing toward the viewer (front view)",
+                "back":  ", seen from BEHIND (its back facing the viewer, back side toward us)",
+                "left":  ", seen at a 3/4 back-left angle (turned 45 degrees, back-left facing us)",
+                "right": ", seen at a 3/4 back-right angle (turned 45 degrees, back-right facing us)",
+            }
+            prompt = GENPROP_OBJ_PROMPT.format(desc=desc + FACE_TXT.get(facing, ""))
             ref = os.path.join(frontend_dir, "desk-v3.webp")
 
         raw = _genprop_call_gemini(api_key, prompt, ref)
