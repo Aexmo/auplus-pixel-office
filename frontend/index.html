@@ -3666,11 +3666,12 @@ function toggleBrokerPanel() {
         const WORKING_STATES = ['writing', 'researching', 'executing', 'syncing', 'busy'];
         // 休息区互动槽(绑定用户摆的家具id; dy=脚点相对家具上移; under=家具盖住下半身)
         const BREAK_INTERACTIONS = [
-            { furnId: 'cmrp7fpni460', dx: 0, dy: 6,  orient: 'back',  state: 'playing', under: true, occ: 0.5 },  // 街机长凳:背对玩(下移到凳前,深度在机壳之上凳之下)
-            { furnId: 'cmrp6yk1q67',  dx: 0, dy: 24, orient: 'back',  state: 'idle',    under: false },           // 沙发:背朝画面坐着看电视
-            { furnId: 'cmrp6zetr628', dx: 0, dy: 42, orient: 'back',  state: 'idle',    under: true, occ: 0.5 },  // 吧台左:背对喝(抬高露头)
-            { furnId: 'cmrp6zoed925', dx: 0, dy: 42, orient: 'back',  state: 'idle',    under: true, occ: 0.5 },  // 吧台右:背对喝(抬高露头)
-            { furnId: 'cmrp6dsw7329', dx: 0, dy: 54, orient: 'front', state: 'eating',  under: true, occ: 0.5 },  // 厨房柜台:正面吃(抬高露头)
+            { furnId: 'cmrp7fpni460', dx: 0, dy: 6,   orient: 'back',  state: 'playing', under: true, occ: 0.5 },  // 街机长凳:背对玩(满意)
+            { furnId: 'cmrp6yk1q67',  dx: 0, dy: -12, orient: 'back',  state: 'idle',    under: true, occ: 0.35, still: true }, // 沙发:坐进沙发里(沙发盖下半身+静坐不跳)
+            { furnId: 'cmrp6dsw7329', dx: 0, dy: 54,  orient: 'front', state: 'eating',  under: true, occ: 0.5 },  // 厨房柜台:正面吃(满意)
+            { furnId: 'cmrp6zetr628', dx: 0, dy: 54,  orient: 'front', state: 'eating',  under: true, occ: 0.5 },  // 吧台左→厨房效果
+            { furnId: 'cmrp6zoed925', dx: 0, dy: 54,  orient: 'front', state: 'eating',  under: true, occ: 0.5 },  // 吧台右→厨房效果
+            { furnId: 'cmrp6eem9458', dx: 0, dy: 40,  orient: 'front', state: 'eating',  under: true, occ: 0.5 },  // 酒柜→厨房效果
         ];
         function furnItem(id) {
             const it = window.editorItems && window.editorItems[id];
@@ -3698,7 +3699,7 @@ function toggleBrokerPanel() {
                 const slot = slots[window.agentBreakSlots[nm] % slots.length];
                 const fi = furnItem(slot.furnId);
                 return { x: Math.round(fi.spr.x + slot.dx), y: Math.round(fi.spr.y - slot.dy),
-                         orient: slot.orient, state: slot.state,
+                         orient: slot.orient, state: slot.state, still: !!slot.still,
                          depth: slot.under ? (fi.spr.depth - (slot.occ || 1)) : (fi.spr.depth + 1) };
             }
             const d = assignWorkstation(agent);
@@ -5301,7 +5302,8 @@ function toggleBrokerPanel() {
             }
             spr.setAngle(0); spr.setScale(it.baseScale || 1);
             const T = game.tweens;
-            if (state === 'idle') it.tween = T.add({ targets: spr, y: '-=4', duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+            if (it.still) { /* 坐姿: 不做位移动画,只静坐(帧动画仍在) */ }
+            else if (state === 'idle') it.tween = T.add({ targets: spr, y: '-=4', duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
             else if (state === 'busy') it.tween = T.add({ targets: spr, y: '-=3', duration: 180, yoyo: true, repeat: -1 });
             else if (state === 'angry') it.tween = T.add({ targets: spr, x: '+=3', duration: 60, yoyo: true, repeat: -1 });
             else if (state === 'happy') it.tween = T.add({ targets: spr, y: '-=14', duration: 320, yoyo: true, repeat: -1, ease: 'Quad.out' });
@@ -5387,6 +5389,7 @@ function toggleBrokerPanel() {
             cur.skinHolder.spr = spr;
             cur.skinHolder.charId = charId;
             cur.skinHolder.orient = orient;
+            cur.skinHolder.still = !!(pl && pl.still);   // 坐姿静坐不跳
             spr.setOrigin(0.5, 1);   // 脚对齐落点
             applyActorState(cur.skinHolder, mapped);
         }
