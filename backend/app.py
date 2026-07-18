@@ -275,6 +275,22 @@ def editor_placements():
     if request.method == "POST":
         try:
             data = request.get_json(force=True) or []
+            # 保存前备份轮转(保留最近20个),防布局丢失可回滚
+            try:
+                if os.path.exists(EDITOR_PLACEMENTS_FILE) and os.path.getsize(EDITOR_PLACEMENTS_FILE) > 20:
+                    bak_dir = os.path.join(ROOT_DIR, "placements-backups")
+                    os.makedirs(bak_dir, exist_ok=True)
+                    import shutil as _sh
+                    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    _sh.copy2(EDITOR_PLACEMENTS_FILE, os.path.join(bak_dir, f"placements_{ts}.json"))
+                    baks = sorted(os.listdir(bak_dir))
+                    for old in baks[:-20]:
+                        try:
+                            os.remove(os.path.join(bak_dir, old))
+                        except Exception:
+                            pass
+            except Exception:
+                pass
             with open(EDITOR_PLACEMENTS_FILE, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             return jsonify({"ok": True, "count": len(data)})
@@ -404,10 +420,10 @@ def editor_generate_prop():
             # 朝向: front正面/back背面/left左斜45/right右斜45
             facing = (data.get("facing") or "front")
             FACE_TXT = {
-                "front": ", facing toward the viewer (front view)",
-                "back":  ", seen from BEHIND (its back facing the viewer, back side toward us)",
-                "left":  ", seen at a 3/4 back-left angle (turned 45 degrees, back-left facing us)",
-                "right": ", seen at a 3/4 back-right angle (turned 45 degrees, back-right facing us)",
+                "front": "",   # 正面=原样,不加朝向文字(避免与3/4视角叠加导致倾斜)
+                "back":  ", but seen from directly BEHIND (its back panel facing the viewer, we see the back of it)",
+                "left":  ", but turned 45 degrees to show its back-left side toward the viewer",
+                "right": ", but turned 45 degrees to show its back-right side toward the viewer",
             }
             prompt = GENPROP_OBJ_PROMPT.format(desc=desc + FACE_TXT.get(facing, ""))
             ref = os.path.join(frontend_dir, "desk-v3.webp")
