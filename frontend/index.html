@@ -3674,6 +3674,11 @@ function toggleBrokerPanel() {
             { furnId: 'cmrp6zetr628', dx: 0, dy: -58, orient: 'back',  state: 'idle',   under: false }, // 吧台左·下侧:背对屏幕,人覆盖吧台
             { furnId: 'cmrp6zoed925', dx: 0, dy: -10, orient: 'front', state: 'idle',   under: true, occ: 0.5 }, // 吧台右·上侧:吧台遮身正面
             { furnId: 'cmrp6zoed925', dx: 0, dy: -58, orient: 'back',  state: 'idle',   under: false }, // 吧台右·下侧:背对人覆盖吧台
+            // 对战桌: 上侧赢家高兴(桌遮身正面) + 下侧输家生气(背对人覆盖桌) —— 一喜一怒有输赢
+            { furnId: 'cmrp6pfbf92',    dx: 0, dy: -8,  orient: 'front', state: 'happy', under: true, occ: 0.5 }, // 桌上足球·上侧:赢家高兴
+            { furnId: 'cmrp6pfbf92',    dx: 0, dy: -56, orient: 'back',  state: 'angry', under: false },          // 桌上足球·下侧:输家生气
+            { furnId: 'cmrp6sfmz939', dx: 0, dy: -8,  orient: 'front', state: 'happy', under: true, occ: 0.5 }, // 台球·上侧:赢家高兴
+            { furnId: 'cmrp6sfmz939', dx: 0, dy: -56, orient: 'back',  state: 'angry', under: false },          // 台球·下侧:输家生气
         ];
         function furnItem(id) {
             const it = window.editorItems && window.editorItems[id];
