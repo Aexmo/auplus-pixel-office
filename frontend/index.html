@@ -4724,9 +4724,9 @@ function toggleBrokerPanel() {
                     inp.onchange = () => {
                         let v = snap(parseInt(inp.value) || 0);
                         if (k === 'w' || k === 'h') v = Math.max(160, v);
-                        r[k] = v;
-                        if (r.x + r.w > 1600) r[k === 'w' ? 'w' : 'x'] = k === 'w' ? 1600 - r.x : Math.max(0, 1600 - r.w);
-                        if (r.y + r.h > 1000) r[k === 'h' ? 'h' : 'y'] = k === 'h' ? 1000 - r.y : Math.max(0, 1000 - r.h);
+                        // 允许扩展到现有版图之外(上限放宽到8000×6000,世界自动扩)
+                        v = Math.min(v, k === 'x' ? 7600 : k === 'y' ? 5600 : k === 'w' ? 7600 : 5600);
+                        r[k] = Math.max(0, v);
                         rebuildOfficeMap(); queueEditorSave();
                     };
                     l2.appendChild(sp); l2.appendChild(inp);
@@ -4769,8 +4769,10 @@ function toggleBrokerPanel() {
                 return b;
             };
             btnRow.appendChild(mkBtn('➕ 新增房间', () => {
+                // 放在现有版图右侧外(可再拖到别处),世界随之扩展
+                const maxRight = Math.max(0, ...window.mapRooms.map(r => r.x + r.w));
                 window.mapRooms.push({ id: 'r' + Date.now().toString(36), name: '新房间',
-                    x: 40, y: 40, w: 320, h: 280, floor: 'tile_wood' });
+                    x: maxRight + 60, y: 40, w: 400, h: 320, floor: 'tile_wood' });
                 rebuildOfficeMap(); queueEditorSave();
             }));
             btnRow.appendChild(mkBtn('🪧 新增标牌', () => editorAddSign()));
@@ -5734,8 +5736,18 @@ function toggleBrokerPanel() {
         window.roomFloorState = {};     // roomId -> 用户改过的地板纹理
         window.removedWalls = new Set();   // 被拆除的墙段ID
 
+        function computeWorld() {
+            let ww = 1600, hh = 1000;
+            (window.mapRooms || []).forEach(r => { ww = Math.max(ww, r.x + r.w + 60); hh = Math.max(hh, r.y + r.h + 60); });
+            window.WORLD_W = ww; window.WORLD_H = hh;
+        }
+        function applyWorldBounds() {
+            if (!game || !game.cameras) return;
+            game.cameras.main.setBounds(0, 0, window.WORLD_W || 1600, window.WORLD_H || 1000);
+        }
         function buildOfficeMap(scene) {
-            const W = scene.scale.width, H = scene.scale.height;
+            computeWorld();
+            const W = window.WORLD_W, H = window.WORLD_H;
             const CAP_H = 16, FACE_H = 44, V_W = 18;
             const rooms = window.mapRooms;
             const add = (o) => { window.mapObjects.push(o); return o; };
@@ -5908,10 +5920,9 @@ function toggleBrokerPanel() {
                 }
             }
             w = Math.max(160, w); h = Math.max(160, h);
-            x = Math.max(0, Math.min(1600 - w, x));
-            y = Math.max(0, Math.min(1000 - h, y));
-            if (x + w > 1600) w = 1600 - x;
-            if (y + h > 1000) h = 1000 - y;
+            // 允许拖到现有版图之外(上限8000×6000,世界自动扩展)
+            x = Math.max(0, Math.min(8000 - w, x));
+            y = Math.max(0, Math.min(6000 - h, y));
             r.x = x; r.y = y; r.w = w; r.h = h;
             // 预览框 + 对齐参考线
             const g = window.roomPreviewGfx;
@@ -5935,6 +5946,7 @@ function toggleBrokerPanel() {
             window.mapObjects.forEach(o => { try { o.destroy(); } catch (e) {} });
             window.mapObjects = [];
             buildOfficeMap(game);
+            applyWorldBounds();   // 世界随房间扩展,相机可平移到新增区域
             renderRoomLayoutSection();
         }
 
@@ -6266,16 +6278,19 @@ function toggleBrokerPanel() {
             let panStart = null; // {x,y,sx,sy}
             const camera = game.cameras.main;
 
+            // 动态世界尺寸(房间扩展后可平移到新区域)
+            const getMapW = () => window.WORLD_W || config.width;
+            const getMapH = () => window.WORLD_H || config.height;
             const MAP_W = config.width;
             const MAP_H = config.height;
             function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
             function maxScrollX() {
                 const viewportW = camera.width / Math.max(0.01, camera.zoom);
-                return Math.max(0, MAP_W - viewportW);
+                return Math.max(0, getMapW() - viewportW);
             }
             function maxScrollY() {
                 const viewportH = camera.height / Math.max(0.01, camera.zoom);
-                return Math.max(0, MAP_H - viewportH);
+                return Math.max(0, getMapH() - viewportH);
             }
             function clampCameraScroll() {
                 camera.scrollX = clamp(camera.scrollX, 0, maxScrollX());
