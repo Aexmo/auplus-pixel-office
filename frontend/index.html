@@ -3667,7 +3667,7 @@ function toggleBrokerPanel() {
         // 休息区互动槽(绑定用户摆的家具id; dy=脚点相对家具上移; under=家具盖住下半身)
         const BREAK_INTERACTIONS = [
             { furnId: 'cmrp7fpni460', dx: 0, dy: 6,   orient: 'back',  state: 'playing', under: true, occ: 0.5 },  // 街机长凳:背对玩(满意)
-            { furnId: 'cmrp6yk1q67',  dx: 0, dy: -12, orient: 'back',  state: 'idle',    under: true, occ: 0.35, still: true }, // 沙发:坐进沙发里(沙发盖下半身+静坐不跳)
+            { furnId: 'cmrp6yk1q67',  dx: 0, dy: -22, orient: 'back',  state: 'sleeping', under: true, occ: 0.35 }, // 沙发:睡觉背面=慵懒窝沙发上(坐深进座位)
             { furnId: 'cmrp6dsw7329', dx: 0, dy: 54,  orient: 'front', state: 'eating',  under: true, occ: 0.5 },  // 厨房柜台:正面吃(满意)
             { furnId: 'cmrp6zetr628', dx: 0, dy: 54,  orient: 'front', state: 'eating',  under: true, occ: 0.5 },  // 吧台左→厨房效果
             { furnId: 'cmrp6zoed925', dx: 0, dy: 54,  orient: 'front', state: 'eating',  under: true, occ: 0.5 },  // 吧台右→厨房效果
