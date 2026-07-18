@@ -17,7 +17,7 @@ RIG_FILE = f'{CHARDIR}/body_rig.json'
 STATES = ['idle','busy','angry','happy','sad','eating','playing','sleepy','sleeping']
 BODY = sys.argv[1] if len(sys.argv) > 1 else 'body_m'
 import os as _os
-OSUF = '_back' if _os.environ.get('ORIENT') == 'back' else ''
+OSUF = ('_' + _os.environ.get('ORIENT')) if _os.environ.get('ORIENT') not in (None, 'front') else ''
 BODYKEY = BODY + OSUF
 
 

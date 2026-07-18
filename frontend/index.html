@@ -3662,9 +3662,52 @@ function toggleBrokerPanel() {
             return { x: Math.round(desk.x + DESK_SIT_DX), y: Math.round(desk.y - DESK_SIT_DY),
                      deskId: desk.id, deskDepth: desk.depth, atDesk: true };
         }
+        // ===== 状态驱动家具互动: 忙碌→工位打字, 空闲→休息区家具互动 =====
+        const WORKING_STATES = ['writing', 'researching', 'executing', 'syncing', 'busy'];
+        // 休息区互动槽(绑定用户摆的家具id; dy=脚点相对家具上移; under=家具盖住下半身)
+        const BREAK_INTERACTIONS = [
+            { furnId: 'cmrp7fpni460', dx: 0, dy: 30, orient: 'back',  state: 'playing',  under: true },   // 街机长凳:背对玩
+            { furnId: 'cmrp6yk1q67',  dx: 0, dy: 4,  orient: 'front', state: 'happy',    under: false },  // 沙发:正面放松
+            { furnId: 'cmrp6zetr628', dx: 0, dy: 14, orient: 'back',  state: 'idle',     under: true },   // 吧台左:背对喝
+            { furnId: 'cmrp6zoed925', dx: 0, dy: 14, orient: 'back',  state: 'idle',     under: true },   // 吧台右:背对喝
+            { furnId: 'cmrp6dsw7329', dx: 0, dy: 20, orient: 'front', state: 'eating',   under: true },   // 厨房柜台:正面吃
+        ];
+        function furnItem(id) {
+            const it = window.editorItems && window.editorItems[id];
+            return (it && it.spr && it.spr.active && it.spr.visible) ? it : null;
+        }
+        function availableBreakSlots() { return BREAK_INTERACTIONS.filter(s => furnItem(s.furnId)); }
+        window.agentBreakSlots = {};
+        function getAgentPlacement(agent) {
+            const nm = agent.name || agent.agentId || '';
+            const working = !window.forceIdle && WORKING_STATES.includes(agent.state);
+            if (working) {
+                const d = assignWorkstation(agent);
+                return { x: d.x, y: d.y, orient: 'front',
+                         state: agent.state === 'syncing' ? 'happy' : 'busy',
+                         depth: d.atDesk ? (d.deskDepth - 1) : 2600 };
+            }
+            // 空闲 → 休息区家具互动
+            const slots = availableBreakSlots();
+            if (slots.length) {
+                if (window.agentBreakSlots[nm] === undefined || window.agentBreakSlots[nm] >= slots.length) {
+                    const used = new Set(Object.values(window.agentBreakSlots));
+                    let s = 0; while (used.has(s) && s < slots.length) s++;
+                    window.agentBreakSlots[nm] = s % slots.length;
+                }
+                const slot = slots[window.agentBreakSlots[nm] % slots.length];
+                const fi = furnItem(slot.furnId);
+                return { x: Math.round(fi.spr.x + slot.dx), y: Math.round(fi.spr.y - slot.dy),
+                         orient: slot.orient, state: slot.state,
+                         depth: slot.under ? (fi.spr.depth - 1) : (fi.spr.depth + 1) };
+            }
+            const d = assignWorkstation(agent);
+            return { x: d.x, y: d.y, orient: 'front', state: 'idle', depth: d.atDesk ? (d.deskDepth - 1) : 2600 };
+        }
         function renderGuestAgentsInScene() {
             if (!game) return;
             const visitors = getMergedVisitors();
+            visitors.forEach(a => { a.__pl = getAgentPlacement(a); });
             setTimeout(() => { try { visitors.forEach(a => applyAgentSkinFor(a)); } catch (e) {} }, 50);
             const seenIds = new Set();
             let idxBreak = 0, idxWrite = 0, idxError = 0;
@@ -3676,12 +3719,9 @@ function toggleBrokerPanel() {
                 const isDemo = !!agent.isDemo || (DEMO_MODE && (id === 'demo_nika' || id === 'demo_mercury' || agent.name === '尼卡' || agent.name === '水星'));
                 const area = agent.area || (agent.state === 'error' ? 'error' : (agent.state === 'idle' ? 'breakroom' : 'writing'));
 
-                // 每个 Agent 固定坐自己的工位（座位稳定分配，状态只驱动动画不驱动位置）
-                let p = assignWorkstation(agent);
-                if (!p) {
-                    const idx = area === 'breakroom' ? idxBreak++ : area === 'error' ? idxError++ : idxWrite++;
-                    p = isDemo ? randomPointInRect(getAreaRect(area)) : getAreaPoint(area, idx);
-                }
+                // 状态驱动落位: 忙碌坐工位/空闲去休息区互动(agent.__pl已算好)
+                let p = agent.__pl || getAgentPlacement(agent);
+                p = { x: p.x, y: p.y, atDesk: true, deskDepth: (p.depth || 2599) + 1, __placeDepth: p.depth };
 
                 if (!guestSprites[id]) {
                     // 优先用图标：demo visitor 有专门映射
@@ -5315,8 +5355,7 @@ function toggleBrokerPanel() {
             const gs = guestSprites[agent.agentId];
             if (!gs || !gs.sprite || !gs.sprite.active) return;
             // 预览模式: 独立 previewSkins 覆盖(不动 agentSkins,无持久化风险)
-            let charId = (window.previewAllBusy && window.previewSkins && window.previewSkins[agent.name])
-                || window.agentSkins[agent.name];
+            let charId = (window.previewSkins && window.previewSkins[agent.name]) || window.agentSkins[agent.name];
             if (!charId) {
                 if (gs.skinHolder) {   // 摘皮肤 → 销毁重建默认形象
                     if (gs.skinHolder.tween) gs.skinHolder.tween.stop();
@@ -5328,9 +5367,14 @@ function toggleBrokerPanel() {
                 return;
             }
             if (typeof gs.sprite.setTexture !== 'function') return;
-            const effState = window.previewAllBusy ? 'writing' : agent.state;
-            const mapped = AGENT_STATE_MAP[effState] || 'idle';
-            if (gs.skinHolder && gs.skinHolder.charId === charId && gs.skinHolder.state === mapped) return;
+            // 落位方案决定状态动画+朝向(预览模式强制忙碌)
+            const pl = window.previewAllBusy
+                ? { state: 'busy', orient: 'front' }
+                : (agent.__pl || getAgentPlacement(agent));
+            const mapped = pl.state || 'idle';
+            let orient = pl.orient || 'front';
+            if (orient === 'back' && !actorHasBack(charId)) orient = 'front';   // 无背面则退正面
+            if (gs.skinHolder && gs.skinHolder.charId === charId && gs.skinHolder.state === mapped && gs.skinHolder.orient === orient) return;
             if (!(await ensureActorTextures(charId))) return;
             const cur = guestSprites[agent.agentId];
             if (!cur || !cur.sprite.active) return;
@@ -5340,7 +5384,8 @@ function toggleBrokerPanel() {
             cur.skinHolder.baseScale = window.AGENT_SKIN_SCALE || 0.5;   // 工位角色缩小,可调
             cur.skinHolder.spr = spr;
             cur.skinHolder.charId = charId;
-            spr.setOrigin(0.5, 1);   // 脚对齐工位点
+            cur.skinHolder.orient = orient;
+            spr.setOrigin(0.5, 1);   // 脚对齐落点
             applyActorState(cur.skinHolder, mapped);
         }
         function renderDressingAgents() {
@@ -6581,6 +6626,17 @@ function toggleBrokerPanel() {
             }
             if (new URLSearchParams(location.search).get('previewbusy') === '1') {
                 setTimeout(async () => { await loadCharacters(); togglePreviewBusy(); }, 1500);
+            }
+            if (new URLSearchParams(location.search).get('breakdemo') === '1') {
+                setTimeout(async () => {
+                    await loadCharacters();
+                    window.forceIdle = true;
+                    const newest = (window.actorDefs && window.actorDefs.length) ? window.actorDefs[window.actorDefs.length - 1].id : null;
+                    window.previewSkins = {};
+                    if (newest) (getMergedVisitors() || []).forEach(a => { if (!window.agentSkins[a.name]) window.previewSkins[a.name] = newest; });
+                    Object.keys(guestSprites).forEach(id => { try { guestSprites[id].sprite.destroy(); guestSprites[id].nameText.destroy(); } catch(e){} delete guestSprites[id]; });
+                    renderGuestAgentsInScene();
+                }, 1500);
             }
 
             // 加载昨日 memo

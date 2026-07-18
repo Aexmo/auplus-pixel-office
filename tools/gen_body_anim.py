@@ -29,11 +29,18 @@ STATES = [
 ]
 CALM_STATES = {'sleepy', 'sleeping'}   # 安静状态: 第2帧只做轻微呼吸,不做大动作
 STATE_FILTER = set(sys.argv[2].split(',')) if len(sys.argv) > 2 else None
-ORIENT = os.environ.get('ORIENT', 'front')   # front / back
-SUF = '_back' if ORIENT == 'back' else ''
-BACK_NOTE = (' The WHOLE body is seen FROM BEHIND (back facing the viewer): back of the head, back of the '
-             'outfit, AND the legs/feet also from behind (we see the backs of the heels, NOT the toes). '
-             'The character must have exactly TWO legs and TWO arms, no extra limbs.') if ORIENT == 'back' else ''
+ORIENT = os.environ.get('ORIENT', 'front')   # front / back / side
+SUF = ('_' + ORIENT) if ORIENT != 'front' else ''
+if ORIENT == 'back':
+    BACK_NOTE = (' The WHOLE body is seen FROM BEHIND (back facing the viewer): back of the head, back of the '
+                 'outfit, AND the legs/feet also from behind (we see the backs of the heels, NOT the toes). '
+                 'The character must have exactly TWO legs and TWO arms, no extra limbs.')
+elif ORIENT == 'side':
+    BACK_NOTE = (' The WHOLE body is seen from the SIDE (LEFT profile, facing left): head, outfit and legs all '
+                 'in clean side profile. Keep it a clear side view, exactly two legs and two arms visible in '
+                 'profile, no extra limbs.')
+else:
+    BACK_NOTE = ''
 # 背面专用姿势覆盖(修正正面朝向脚/多脚等问题状态)
 BACK_OVERRIDE = {
     'sad': 'crouched down and slumped in dejection, seen FULLY FROM BEHIND — the back and the backs of the '
