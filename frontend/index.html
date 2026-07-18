@@ -1334,15 +1334,6 @@
         <div style="font-size:11px; color:#94a3b8; line-height:1.5; margin-bottom:8px;">
             点击场景中的物品选中 → 拖动移动；下方可调大小/删除。点物品栏图标可新增（落在视野中央）。改动自动保存。
         </div>
-        <button id="creator-batch-toggle" onclick="toggleBatchMode()" style="width:100%; margin-bottom:6px; padding:6px; font-family:ArkPixel,monospace; font-size:12px; cursor:pointer; border:1px solid #475569; border-radius:5px; background:#1f2937; color:#93c5fd;">☑ 批量选择</button>
-        <div id="creator-batch-box" style="display:none; border:1px solid #3b82f6; border-radius:6px; padding:8px; margin-bottom:8px; background:#0f1e33;">
-            <div style="font-size:11px; color:#93c5fd; margin-bottom:6px;">点场景物品逐个勾选（再点取消）；<span id="creator-batch-count">已选 0</span></div>
-            <div style="display:flex; gap:6px;">
-                <button onclick="batchStoreSelected()" style="flex:1; padding:6px; font-family:ArkPixel,monospace; font-size:11px; cursor:pointer; border:1px solid #92742b; border-radius:5px; background:#3a2f10; color:#fbbf24;">📦 批量入仓库</button>
-                <button onclick="batchDeleteSelected()" style="flex:1; padding:6px; font-family:ArkPixel,monospace; font-size:11px; cursor:pointer; border:1px solid #7f1d1d; border-radius:5px; background:#450a0a; color:#fca5a5;">🗑 批量删除(密码)</button>
-            </div>
-            <button onclick="batchClearSelection()" style="width:100%; margin-top:5px; padding:5px; font-family:ArkPixel,monospace; font-size:11px; cursor:pointer; border:1px solid #555; border-radius:5px; background:#2a2a35; color:#cbd5e1;">清空勾选</button>
-        </div>
         <div id="creator-sel-box" style="display:none; border:1px solid #4ade80; border-radius:6px; padding:8px; margin-bottom:8px; background:#1a2b1f;">
             <div id="creator-sel-name" style="font-size:13px; color:#bbf7d0; margin-bottom:6px;">—</div>
             <div style="display:flex; align-items:center; gap:6px;">
@@ -4941,6 +4932,37 @@ function toggleBrokerPanel() {
         window.paletteHidden = [];    // 移入素材仓库的素材 key
         window.paletteDeleted = [];   // 永久删除的内置素材 key
         window.paletteManage = false; // 素材管理模式
+        window.paletteMgSel = new Set(); // 管理模式勾选的素材 key
+        function paletteMgToggle(key) {
+            if (window.paletteMgSel.has(key)) window.paletteMgSel.delete(key);
+            else window.paletteMgSel.add(key);
+            renderPalette();
+        }
+        function paletteStoreSelected() {
+            if (!window.paletteMgSel.size) return;
+            window.paletteMgSel.forEach(key => {
+                if (window.paletteHidden.indexOf(key) < 0) window.paletteHidden.push(key);
+            });
+            window.paletteMgSel.clear();
+            renderPalette(); queueEditorSave();
+        }
+        function paletteDeleteSelected() {
+            if (!window.paletteMgSel.size) return;
+            const pwd = prompt('永久删除选中的 ' + window.paletteMgSel.size + ' 个素材，输入密码：');
+            if (pwd === null) return;
+            if (pwd !== '3123119') { alert('密码错误，未删除'); return; }
+            window.paletteMgSel.forEach(key => {
+                if (key.indexOf('gen_') === 0) {
+                    fetch('/editor/generated/' + key, { method: 'DELETE' }).catch(() => {});
+                    window.__genAssets = (window.__genAssets || []).filter(g => g.key !== key);
+                } else if (window.paletteDeleted.indexOf(key) < 0) {
+                    window.paletteDeleted.push(key);
+                }
+                window.paletteHidden = window.paletteHidden.filter(k => k !== key);
+            });
+            window.paletteMgSel.clear();
+            renderPalette(); queueEditorSave();
+        }
         function buildCreatorPanel() {
             if (window.__creatorPanelBuilt) return;
             window.__creatorPanelBuilt = true;
@@ -4983,20 +5005,19 @@ function toggleBrokerPanel() {
                 g.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:6px;';
                 return g;
             };
-            const decorateManage = (cell, key) => {
+            // 管理模式: 整张图点击勾选(选中=绿框+背景+✓角标)
+            const styleMgCell = (cell, key) => {
                 if (!window.paletteManage) return;
+                const sel = window.paletteMgSel.has(key);
                 cell.style.position = 'relative';
-                const mk = (label, right, bg, fn) => {
-                    const b = document.createElement('div');
-                    b.textContent = label;
-                    b.style.cssText = 'position:absolute;top:-6px;' + (right ? 'right:-6px;' : 'left:-6px;')
-                        + 'width:18px;height:18px;line-height:18px;font-size:11px;text-align:center;'
-                        + 'border-radius:9px;cursor:pointer;background:' + bg + ';color:#fff;z-index:2;';
-                    b.onclick = (e) => { e.stopPropagation(); fn(); };
-                    cell.appendChild(b);
-                };
-                mk('📦', false, '#92742b', () => paletteStoreKey(key));
-                mk('✕', true, '#dc2626', () => paletteDeleteKey(key));
+                cell.style.borderColor = sel ? '#22c55e' : '#3a3a4a';
+                cell.style.background = sel ? '#14532d' : '#23232e';
+                if (sel) {
+                    const ck = document.createElement('div');
+                    ck.textContent = '✓';
+                    ck.style.cssText = 'position:absolute;top:-6px;right:-6px;width:18px;height:18px;line-height:18px;font-size:12px;text-align:center;border-radius:9px;background:#22c55e;color:#fff;z-index:2;';
+                    cell.appendChild(ck);
+                }
             };
             const makeCell = (pal) => {
                 const cell = document.createElement('div');
@@ -5006,8 +5027,8 @@ function toggleBrokerPanel() {
                     ? '<img src="' + thumbUrl + '" loading="lazy" style="max-width:44px;max-height:38px;image-rendering:pixelated;">'
                     : '<div style="font-size:24px;line-height:38px;">' + (SHEET_EMOJI[pal.key] || '📦') + '</div>')
                     + '<div style="font-size:11px;color:#cbd5e1;margin-top:2px;">' + pal.name + '</div>';
-                cell.onclick = () => { if (!window.paletteManage) editorAddFromPalette(pal); };
-                decorateManage(cell, pal.key);
+                cell.onclick = () => { window.paletteManage ? paletteMgToggle(pal.key) : editorAddFromPalette(pal); };
+                styleMgCell(cell, pal.key);
                 return cell;
             };
             // 管理开关
@@ -5018,15 +5039,27 @@ function toggleBrokerPanel() {
             mbtn.style.cssText = 'padding:4px 8px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid '
                 + (window.paletteManage ? '#16a34a' : '#475569') + ';border-radius:5px;background:'
                 + (window.paletteManage ? '#14532d' : '#1f2937') + ';color:#e5e7eb;';
-            mbtn.onclick = () => { window.paletteManage = !window.paletteManage; renderPalette(); };
+            mbtn.onclick = () => { window.paletteManage = !window.paletteManage; window.paletteMgSel.clear(); renderPalette(); };
             mrow.appendChild(mbtn);
-            if (window.paletteManage) {
-                const tip = document.createElement('span');
-                tip.style.cssText = 'font-size:10px;color:#94a3b8;';
-                tip.textContent = '📦=入仓库 ✕=永久删除';
-                mrow.appendChild(tip);
-            }
             root.appendChild(mrow);
+            if (window.paletteManage) {
+                const tip = document.createElement('div');
+                tip.style.cssText = 'font-size:10px;color:#94a3b8;margin-bottom:6px;';
+                tip.textContent = '点图片勾选(可多选) → 下方一起删除/入仓库。已选 ' + window.paletteMgSel.size;
+                root.appendChild(tip);
+                const bar = document.createElement('div');
+                bar.style.cssText = 'display:flex;gap:6px;margin-bottom:8px;';
+                const del = document.createElement('button');
+                del.textContent = '🗑 删除选中(' + window.paletteMgSel.size + ')';
+                del.style.cssText = 'flex:1;padding:6px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid #7f1d1d;border-radius:5px;background:#450a0a;color:#fca5a5;';
+                del.onclick = paletteDeleteSelected;
+                const store = document.createElement('button');
+                store.textContent = '📦 入仓库(' + window.paletteMgSel.size + ')';
+                store.style.cssText = 'flex:1;padding:6px;font-family:ArkPixel,monospace;font-size:11px;cursor:pointer;border:1px solid #92742b;border-radius:5px;background:#3a2f10;color:#fbbf24;';
+                store.onclick = paletteStoreSelected;
+                bar.appendChild(store); bar.appendChild(del);
+                root.appendChild(bar);
+            }
             // 内置素材分组
             const visible = EDITOR_PALETTE.filter(p2 => hidden.indexOf(p2.key) < 0 && deleted.indexOf(p2.key) < 0);
             const cats = [];
@@ -5053,8 +5086,8 @@ function toggleBrokerPanel() {
                     cell.style.cssText = 'cursor:pointer;text-align:center;padding:6px 2px;border:1px solid #3a3a4a;border-radius:6px;background:#23232e;';
                     cell.innerHTML = '<img src="/static/generated/' + g.key + '.png" loading="lazy" style="max-width:44px;max-height:38px;image-rendering:pixelated;">'
                         + '<div style="font-size:11px;color:#cbd5e1;margin-top:2px;">' + (g.name || '素材') + '</div>';
-                    cell.onclick = () => { if (!window.paletteManage) editorAddGenerated(g); };
-                    decorateManage(cell, g.key);
+                    cell.onclick = () => { window.paletteManage ? paletteMgToggle(g.key) : editorAddGenerated(g); };
+                    styleMgCell(cell, g.key);
                     g2.appendChild(cell);
                 });
                 root.appendChild(g2);
