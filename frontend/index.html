@@ -4382,14 +4382,15 @@ function toggleBrokerPanel() {
             gfx.clear();
             if (window.editorSelX) window.editorSelX.setVisible(false);
             if (!window.editorMode) return;
-            // 批量选中：蓝框高亮所有勾选项
+            // 批量选中：半透明蓝色填充 + 粗蓝框 + ✓ 角标，一眼可见
             if (window.editorBatchMode && window.editorBatchSet.size) {
-                gfx.lineStyle(2, 0x3b82f6, 1);
                 window.editorBatchSet.forEach(id2 => {
                     const it2 = window.editorItems[id2];
                     if (it2 && it2.spr.visible) {
                         const bb = it2.spr.getBounds();
-                        gfx.strokeRect(bb.x - 3, bb.y - 3, bb.width + 6, bb.height + 6);
+                        gfx.fillStyle(0x3b82f6, 0.35).fillRect(bb.x - 3, bb.y - 3, bb.width + 6, bb.height + 6);
+                        gfx.lineStyle(3, 0x60a5fa, 1).strokeRect(bb.x - 3, bb.y - 3, bb.width + 6, bb.height + 6);
+                        gfx.fillStyle(0x22c55e, 1).fillCircle(bb.x + bb.width, bb.y, 7);
                     }
                 });
             }
@@ -4413,6 +4414,10 @@ function toggleBrokerPanel() {
             editorSelBoxDraw(); editorPanelSyncSel(); batchUpdateCount();
         }
         function batchToggleItem(id) {
+            // 去重防抖: 同一物品 350ms 内重复触发只算一次(避免一次点击被 Phaser 多次派发)
+            const now = (window.performance && performance.now) ? performance.now() : Date.now();
+            if (window.__lastBatchTap && window.__lastBatchTap.id === id && (now - window.__lastBatchTap.t) < 350) return;
+            window.__lastBatchTap = { id, t: now };
             if (window.editorBatchSet.has(id)) window.editorBatchSet.delete(id);
             else window.editorBatchSet.add(id);
             editorSelBoxDraw(); batchUpdateCount();
