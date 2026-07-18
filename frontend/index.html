@@ -3679,7 +3679,31 @@ function toggleBrokerPanel() {
             { furnId: 'cmrp6pfbf92',    dx: 0, dy: -56, orient: 'back',  state: 'angry', under: false },          // 桌上足球·下侧:输家生气
             { furnId: 'cmrp6sfmz939', dx: 0, dy: -8,  orient: 'front', state: 'happy', under: true, occ: 0.5 }, // 台球·上侧:赢家高兴
             { furnId: 'cmrp6sfmz939', dx: 0, dy: -56, orient: 'back',  state: 'angry', under: false },          // 台球·下侧:输家生气
+            // 办公区沙发: 两座,分层(人坐坐垫上,前裙遮罩盖住腿+前方家具)
+            { furnId: 'cmrp70i24566', dx: -48, dy: -28, orient: 'front', state: 'idle', sofaSit: true }, // 左座
+            { furnId: 'cmrp70i24566', dx: 48,  dy: -28, orient: 'front', state: 'idle', sofaSit: true }, // 右座
         ];
+        // 需要"前裙分层遮罩"的沙发(解决坐垫坐人+前裙盖腿): cropTop=前裙起始高度比例
+        const SOFA_LAYERS = [ { furnId: 'cmrp70i24566', cropTop: 0.44 } ];
+        window.sofaOverlays = {};
+        function ensureSofaOverlays() {
+            SOFA_LAYERS.forEach(cfg => {
+                const it = window.editorItems && window.editorItems[cfg.furnId];
+                if (!it || !it.spr || !it.spr.active) return;
+                const spr = it.spr;
+                let ov = window.sofaOverlays[cfg.furnId];
+                if (!ov || !ov.active) {
+                    ov = game.add.image(spr.x, spr.y, spr.texture.key).setOrigin(spr.originX, spr.originY);
+                    window.sofaOverlays[cfg.furnId] = ov;
+                }
+                ov.setTexture(spr.texture.key);
+                ov.setScale(spr.scaleX, spr.scaleY);
+                ov.setPosition(spr.x, spr.y);
+                const th = ov.height, cy = Math.round(th * cfg.cropTop);
+                ov.setCrop(0, cy, ov.width, th - cy);   // 只显示前裙(下半部)
+                ov.setDepth(spr.depth + 3);              // 盖住人腿+沙发前方家具
+            });
+        }
         function furnItem(id) {
             const it = window.editorItems && window.editorItems[id];
             return (it && it.spr && it.spr.active && it.spr.visible) ? it : null;
@@ -3723,8 +3747,10 @@ function toggleBrokerPanel() {
                 const slot = slots[window.agentBreakSlots[nm] % slots.length];
                 const fi = furnItem(slot.furnId);
                 const c = clampToRoomFloor(Math.round(fi.spr.x + slot.dx), Math.round(fi.spr.y - slot.dy));
-                return { x: c.x, y: c.y, orient: slot.orient, state: slot.state, still: !!slot.still,
-                         depth: slot.under ? (fi.spr.depth - (slot.occ || 1)) : (fi.spr.depth + 1) };
+                let depth;
+                if (slot.sofaSit) depth = fi.spr.depth + 1.5;         // 人夹在沙发底座与前裙遮罩(+3)之间
+                else depth = slot.under ? (fi.spr.depth - (slot.occ || 1)) : (fi.spr.depth + 1);
+                return { x: c.x, y: c.y, orient: slot.orient, state: slot.state, still: !!slot.still, depth };
             }
             const d = assignWorkstation(agent);
             const c = clampToRoomFloor(d.x, d.y);
@@ -3733,6 +3759,7 @@ function toggleBrokerPanel() {
         function renderGuestAgentsInScene() {
             if (!game) return;
             const visitors = getMergedVisitors();
+            try { ensureSofaOverlays(); } catch (e) {}
             visitors.forEach(a => { a.__pl = getAgentPlacement(a); });
             setTimeout(() => { try { visitors.forEach(a => applyAgentSkinFor(a)); } catch (e) {} }, 50);
             const seenIds = new Set();
