@@ -16,6 +16,9 @@ BG = '/tmp/claude-1001/-home-aexmo/97bd1a9a-02a3-48c8-b799-da42bc926bec/scratchp
 RIG_FILE = f'{CHARDIR}/body_rig.json'
 STATES = ['idle','busy','angry','happy','sad','eating','playing','sleepy','sleeping']
 BODY = sys.argv[1] if len(sys.argv) > 1 else 'body_m'
+import os as _os
+OSUF = '_back' if _os.environ.get('ORIENT') == 'back' else ''
+BODYKEY = BODY + OSUF
 
 
 def is_egg(px):
@@ -48,7 +51,7 @@ def largest_egg_blob(im):
 
 def process(body, state, f):
     suffix = '' if f == 0 else '_2'
-    src = f'{BG}/{body}_{state}{suffix}.png'
+    src = f'{BG}/{body}{OSUF}_{state}{suffix}.png'
     if not os.path.exists(src):
         return None
     im = Image.open(src).convert('RGBA')
@@ -78,7 +81,7 @@ def process(body, state, f):
             r, g, b, a = px[x, y]
             if a > 0 and (r + g + b) / 3 > 150 and b >= r - 20 and abs(r - g) < 45:
                 px[x, y] = (0, 0, 0, 0)
-    out = f'{CHARDIR}/rig_{body}_{state}_{f}.png'
+    out = f'{CHARDIR}/rig_{body}{OSUF}_{state}_{f}.png'
     im.save(out)
     return anchor
 
@@ -90,17 +93,17 @@ def main():
             rig = json.load(open(RIG_FILE, encoding='utf-8'))
         except Exception:
             rig = {}
-    rig[BODY] = {}
+    rig[BODYKEY] = {}
     for st in STATES:
-        rig[BODY][st] = {}
+        rig[BODYKEY][st] = {}
         for f in (0, 1):
             anc = process(BODY, st, f)
             if anc:
-                rig[BODY][st][str(f)] = anc
-        print(st, rig[BODY][st].get('0'))
+                rig[BODYKEY][st][str(f)] = anc
+        print(st, rig[BODYKEY][st].get('0'))
     with open(RIG_FILE, 'w', encoding='utf-8') as fp:
         json.dump(rig, fp, ensure_ascii=False, indent=1)
-    print('rig saved', BODY, 'states', len(rig[BODY]))
+    print('rig saved', BODYKEY, 'states', len(rig[BODYKEY]))
 
 
 if __name__ == '__main__':

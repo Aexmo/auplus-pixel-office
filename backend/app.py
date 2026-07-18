@@ -725,6 +725,99 @@ def characters_personalities():
     return jsonify([n for n, _ in PERSONALITY_POOL])
 
 
+def _char_add_back_worker(job_id, only_id):
+    """给角色加背面朝向: 生成背面头 + 用背面身体rig合成9状态背面帧 → statesBack"""
+    from PIL import Image as _Img
+    import io as _io
+    import base64
+    try:
+        cfg = load_runtime_config()
+        api_key = (cfg.get("gemini_api_key") or "").strip()
+        char_dir = os.path.join(str(FRONTEND_PATH), "characters")
+        rig = json.load(open(BODY_RIG_FILE, encoding="utf-8")) if os.path.exists(BODY_RIG_FILE) else {}
+        chars = json.load(open(CHARACTERS_FILE, encoding="utf-8")) if os.path.exists(CHARACTERS_FILE) else []
+        targets = [c for c in chars if (only_id is None or c.get("id") == only_id) and (c.get("heads"))]
+        with _char_lock:
+            _char_jobs[job_id]["total"] = len(targets)
+        done = 0
+        for c in targets:
+            cid = c["id"]
+            body = "body_f_back" if c.get("gender") == "female" else "body_m_back"
+            if body not in rig:
+                continue
+            # 背面头: 用正面 idle 头做参照生成后脑勺(无脸)
+            idle_head = c["heads"].get("idle") or next(iter(c["heads"].values()))
+            hp = os.path.join(char_dir, idle_head)
+            if not os.path.exists(hp):
+                continue
+            ref = base64.b64encode(open(hp, "rb").read()).decode()
+            prompt = ("Reference image: this animal mascot head (front view). Create ONLY THE HEAD seen "
+                      "FROM BEHIND: the back of the exact same head showing the back fur/feathers and the "
+                      "ears/crest from behind, NO face visible, same colors and pixel art style. Big round head, "
+                      "no body no neck. Entire background solid pure magenta (#FF00FF), no text.")
+            raw = None
+            for _ in range(3):
+                try:
+                    raw = _genprop_call_gemini(api_key, prompt, hp)
+                    break
+                except Exception:
+                    import time as _t
+                    _t.sleep(6)
+            if raw is None:
+                continue
+            bh = _genprop_key_magenta(_Img.open(_io.BytesIO(raw)))
+            bb = bh.getbbox()
+            if not bb:
+                continue
+            bh = bh.crop(bb)
+            back_head_fn = f"headback_{cid}.png"
+            bh.save(os.path.join(char_dir, back_head_fn))
+            statesBack = {}
+            for st in CHAR_STATE_LIST:
+                frames = []
+                for f in (0, 1):
+                    anc = rig[body].get(st, {}).get(str(f)) or rig[body].get(st, {}).get('0')
+                    rig_path = os.path.join(char_dir, f"rig_{body}_{st}_{f}.png")
+                    if not os.path.exists(rig_path):
+                        rig_path = os.path.join(char_dir, f"rig_{body}_{st}_0.png")
+                    if not anc or not os.path.exists(rig_path):
+                        continue
+                    comp = _compose_head_body(rig_path, anc, bh)
+                    comp = comp.resize((max(1, round(comp.width * 190 / comp.height)), 190), _Img.NEAREST)
+                    fn = f"char_{cid}_back_{st}_{f}.png"
+                    comp.save(os.path.join(char_dir, fn))
+                    frames.append(fn)
+                if frames:
+                    statesBack[st] = frames
+            c["statesBack"] = statesBack
+            c["backHead"] = back_head_fn
+            done += 1
+            with _char_lock:
+                _char_jobs[job_id]["progress"] = done
+        with open(CHARACTERS_FILE, "w", encoding="utf-8") as f:
+            json.dump(chars, f, ensure_ascii=False, indent=1)
+        with _char_lock:
+            _char_jobs[job_id]["status"] = "done"
+            _char_jobs[job_id]["count"] = done
+    except Exception as e:
+        with _char_lock:
+            _char_jobs[job_id]["status"] = "error"
+            _char_jobs[job_id]["error"] = str(e)
+
+
+@app.route("/characters/add-back", methods=["POST"])
+def characters_add_back():
+    data = request.get_json(force=True) or {}
+    only_id = data.get("id")
+    import time as _t
+    job_id = "cb_" + format(int(_t.time() * 1000), "x")
+    with _char_lock:
+        _char_jobs[job_id] = {"status": "running", "progress": 0, "total": 1}
+    t = threading.Thread(target=_char_add_back_worker, args=(job_id, only_id), daemon=True)
+    t.start()
+    return jsonify({"ok": True, "jobId": job_id})
+
+
 @app.route("/characters/recompose", methods=["POST"])
 def characters_recompose():
     """用当前合成公式重合成所有(有保存头的)角色帧 —— 调公式后一键修复，无需重生成头"""

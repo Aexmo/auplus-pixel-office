@@ -29,6 +29,10 @@ STATES = [
 ]
 CALM_STATES = {'sleepy', 'sleeping'}   # 安静状态: 第2帧只做轻微呼吸,不做大动作
 STATE_FILTER = set(sys.argv[2].split(',')) if len(sys.argv) > 2 else None
+ORIENT = os.environ.get('ORIENT', 'front')   # front / back
+SUF = '_back' if ORIENT == 'back' else ''
+BACK_NOTE = (' The whole body is seen FROM BEHIND (its back facing the viewer, we see the back of the head '
+             'and back of the outfit).') if ORIENT == 'back' else ''
 
 def keyed(im):
     im = im.convert('RGBA'); px = im.load(); W, H = im.size
@@ -56,10 +60,10 @@ def call(prompt, ref_b64):
             return base64.b64decode(d["data"])
     return None
 
-base_ref = base64.b64encode(open(f'{CHARDIR}/{BODY}.png', 'rb').read()).decode()
+base_ref = base64.b64encode(open(f'{CHARDIR}/{BODY}{SUF}.png', 'rb').read()).decode()
 KEEP = ("Keep the IDENTICAL chibi humanoid body: same clothing/outfit, same colors, same "
         "2-heads-tall proportions, same tiny stubby arms and legs. The head MUST stay a PLAIN "
-        "FEATURELESS light-gray egg shape with NO face, no eyes, no features (blank placeholder). ")
+        "FEATURELESS light-gray egg shape with NO face, no eyes, no features (blank placeholder). " + BACK_NOTE)
 
 done = 0
 for state, desc in STATES:
@@ -97,7 +101,7 @@ for state, desc in STATES:
         im = keyed(Image.open(io.BytesIO(raw)))
         th = 300
         im = im.resize((max(1, round(im.width * th / im.height)), th), Image.NEAREST)
-        fn = f"{BODY}_{state}" + (f"_{fi+1}" if fi else "") + ".png"
+        fn = f"{BODY}{SUF}_{state}" + (f"_{fi+1}" if fi else "") + ".png"
         im.save(f"{OUT}/{fn}")
         frames.append(fn)
         if fi == 0:

@@ -1357,6 +1357,11 @@
                     <option value="playing">玩耍</option><option value="sleepy">犯困</option>
                     <option value="sleeping">睡觉</option>
                 </select>
+                <select id="creator-sel-actor-orient" style="width:100%; margin-top:5px; background:#1f2937; color:#e5e7eb; border:1px solid #475569; border-radius:5px; padding:5px; font-family:ArkPixel,monospace; font-size:12px;"
+                    onchange="(function(){ const it = window.editorItems[window.editorSelectedId]; if (it && it.actor) { it.orient = document.getElementById('creator-sel-actor-orient').value; applyActorState(it, it.state || 'idle'); queueEditorSave(); } })()">
+                    <option value="front">⬇ 正面朝向</option>
+                    <option value="back">⬆ 背面朝向</option>
+                </select>
             </div>
             <div id="creator-sel-text-row" style="display:none; margin-top:6px;">
                 <input id="creator-sel-text" type="text" placeholder="标牌文字" style="width:100%; box-sizing:border-box; background:#1f2937; color:#f5e6c8; border:1px solid #475569; border-radius:5px; padding:5px 6px; font-family:ArkPixel,monospace; font-size:12px;">
@@ -4479,7 +4484,11 @@ function toggleBrokerPanel() {
             const arow = document.getElementById('creator-sel-actor-row');
             if (arow) {
                 arow.style.display = it.actor ? 'block' : 'none';
-                if (it.actor) document.getElementById('creator-sel-actor-state').value = it.state || 'idle';
+                if (it.actor) {
+                    document.getElementById('creator-sel-actor-state').value = it.state || 'idle';
+                    const oro = document.getElementById('creator-sel-actor-orient');
+                    if (oro) { oro.value = it.orient || 'front'; oro.parentElement.style.display = actorHasBack(it.charId) ? 'block' : 'none'; }
+                }
             }
         }
         function buildEditorPayload() {
@@ -4492,7 +4501,7 @@ function toggleBrokerPanel() {
                     return;
                 }
                 if (it.actor) {
-                    if (s.active) actors.push({ id, charId: it.charId, state: it.state,
+                    if (s.active) actors.push({ id, charId: it.charId, state: it.state, orient: it.orient || 'front',
                         x: s.x, y: s.y, scale: +(it.baseScale || 1).toFixed(3) });
                     return;
                 }
@@ -5203,22 +5212,34 @@ function toggleBrokerPanel() {
             try { window.actorDefs = await fetch('/characters/list').then(r => r.json()) || []; } catch (e) {}
             renderDressingList();
         }
-        function actorStateFrames(charId, state) {
+        function actorStateFrames(charId, state, orient) {
             const def = (window.actorDefs || []).find(c => c.id === charId);
-            if (!def || !def.states[state]) return [];
+            if (!def) return [];
+            if (orient === 'back' && def.statesBack && def.statesBack[state]) {
+                const vb = def.statesBack[state];
+                return Array.isArray(vb) ? vb : [vb];
+            }
+            if (!def.states[state]) return [];
             const v = def.states[state];
             return Array.isArray(v) ? v : [v];   // 兼容旧单帧角色
         }
-        function actorTexKey(charId, state, fi) {
-            return 'char_' + charId + '_' + state + (fi ? '_f' + fi : '');
+        function actorHasBack(charId) {
+            const def = (window.actorDefs || []).find(c => c.id === charId);
+            return !!(def && def.statesBack && Object.keys(def.statesBack).length);
+        }
+        function actorTexKey(charId, state, fi, orient) {
+            return 'char_' + charId + (orient === 'back' ? '_bk' : '') + '_' + state + (fi ? '_f' + fi : '');
         }
         async function ensureActorTextures(charId) {
             const def = window.actorDefs.find(c => c.id === charId);
             if (!def) return false;
             for (const st of Object.keys(def.states)) {
-                const frames = actorStateFrames(charId, st);
-                for (let i = 0; i < frames.length; i++) {
-                    await ensureTextureLoaded(actorTexKey(charId, st, i), '/static/characters/' + frames[i]);
+                ['front', 'back'].forEach(() => {});
+                for (const orient of ['front', 'back']) {
+                    const frames = actorStateFrames(charId, st, orient);
+                    for (let i = 0; i < frames.length; i++) {
+                        await ensureTextureLoaded(actorTexKey(charId, st, i, orient), '/static/characters/' + frames[i]);
+                    }
                 }
             }
             return true;
@@ -5228,19 +5249,20 @@ function toggleBrokerPanel() {
         function applyActorState(it, state) {
             const spr = it.spr;
             it.state = state;
-            const key = actorTexKey(it.charId, state, 0);
+            const orient = it.orient || 'front';
+            const key = actorTexKey(it.charId, state, 0, orient);
             if (game.textures.exists(key)) spr.setTexture(key);
             if (it.tween) { it.tween.stop(); it.tween = null; }
             if (it.fxTimer) { clearInterval(it.fxTimer); it.fxTimer = null; }
             if (it.animTimer) { clearInterval(it.animTimer); it.animTimer = null; }
             // 真帧动画: 多帧状态按节奏循环换帧
-            const frameCount = actorStateFrames(it.charId, state).length;
+            const frameCount = actorStateFrames(it.charId, state, orient).length;
             if (frameCount > 1) {
                 let fi = 0;
                 it.animTimer = setInterval(() => {
                     if (!spr.active || !spr.visible) { clearInterval(it.animTimer); return; }
                     fi = (fi + 1) % frameCount;
-                    const k2 = actorTexKey(it.charId, state, fi);
+                    const k2 = actorTexKey(it.charId, state, fi, orient);
                     if (game.textures.exists(k2)) spr.setTexture(k2);
                 }, ACTOR_FRAME_MS[state] || 350);
             }
@@ -5272,6 +5294,7 @@ function toggleBrokerPanel() {
             registerEditorItem(game, rec.id, spr, 'floor', true, 'actor');
             const it = window.editorItems[rec.id];
             it.actor = true; it.charId = rec.charId; it.baseScale = rec.scale || 1;
+            it.orient = rec.orient || 'front';
             const def = window.actorDefs.find(c => c.id === rec.charId);
             it.dispName = '角色·' + ((def && def.name) || rec.charId);
             spr.setInteractive({ useHandCursor: true });
