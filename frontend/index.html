@@ -3666,11 +3666,11 @@ function toggleBrokerPanel() {
         const WORKING_STATES = ['writing', 'researching', 'executing', 'syncing', 'busy'];
         // 休息区互动槽(绑定用户摆的家具id; dy=脚点相对家具上移; under=家具盖住下半身)
         const BREAK_INTERACTIONS = [
-            { furnId: 'cmrp7fpni460', dx: 0, dy: 30, orient: 'back',  state: 'playing',  under: true },   // 街机长凳:背对玩
-            { furnId: 'cmrp6yk1q67',  dx: 0, dy: 4,  orient: 'front', state: 'happy',    under: false },  // 沙发:正面放松
-            { furnId: 'cmrp6zetr628', dx: 0, dy: 14, orient: 'back',  state: 'idle',     under: true },   // 吧台左:背对喝
-            { furnId: 'cmrp6zoed925', dx: 0, dy: 14, orient: 'back',  state: 'idle',     under: true },   // 吧台右:背对喝
-            { furnId: 'cmrp6dsw7329', dx: 0, dy: 20, orient: 'front', state: 'eating',   under: true },   // 厨房柜台:正面吃
+            { furnId: 'cmrp7fpni460', dx: 0, dy: 6,  orient: 'back',  state: 'playing', under: true, occ: 0.5 },  // 街机长凳:背对玩(下移到凳前,深度在机壳之上凳之下)
+            { furnId: 'cmrp6yk1q67',  dx: 0, dy: 24, orient: 'back',  state: 'idle',    under: false },           // 沙发:背朝画面坐着看电视
+            { furnId: 'cmrp6zetr628', dx: 0, dy: 42, orient: 'back',  state: 'idle',    under: true, occ: 0.5 },  // 吧台左:背对喝(抬高露头)
+            { furnId: 'cmrp6zoed925', dx: 0, dy: 42, orient: 'back',  state: 'idle',    under: true, occ: 0.5 },  // 吧台右:背对喝(抬高露头)
+            { furnId: 'cmrp6dsw7329', dx: 0, dy: 54, orient: 'front', state: 'eating',  under: true, occ: 0.5 },  // 厨房柜台:正面吃(抬高露头)
         ];
         function furnItem(id) {
             const it = window.editorItems && window.editorItems[id];
@@ -3699,7 +3699,7 @@ function toggleBrokerPanel() {
                 const fi = furnItem(slot.furnId);
                 return { x: Math.round(fi.spr.x + slot.dx), y: Math.round(fi.spr.y - slot.dy),
                          orient: slot.orient, state: slot.state,
-                         depth: slot.under ? (fi.spr.depth - 1) : (fi.spr.depth + 1) };
+                         depth: slot.under ? (fi.spr.depth - (slot.occ || 1)) : (fi.spr.depth + 1) };
             }
             const d = assignWorkstation(agent);
             return { x: d.x, y: d.y, orient: 'front', state: 'idle', depth: d.atDesk ? (d.deskDepth - 1) : 2600 };
@@ -4896,6 +4896,8 @@ function toggleBrokerPanel() {
             await loadCharacters();
             for (const rec of (data.actors || [])) await spawnActor(rec);
             renderWarehouseSection();
+            // 家具加载完成后重新落位 Agent(空闲的才能正确去到休息区家具)
+            try { renderGuestAgentsInScene(); } catch (e) {}
         }
         function ensureTextureLoaded(key, url) {
             // 运行时安全加载：用独立 Image + textures.addImage，绝不调用 scene.load.start()
