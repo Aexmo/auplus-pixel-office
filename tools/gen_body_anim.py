@@ -24,9 +24,11 @@ STATES = [
     ('sad',      'DRAMATICALLY collapsed forward in despair, both arms dangling limp all the way to the floor, over-the-top melodramatic gloom'),
     ('eating',   'STUFFING food into the mouth with both hands frantically, arms shoveling, belly out, comically gluttonous'),
     ('playing',  'doing a WILD silly dance, arms and legs flailing in totally different crazy directions, goofy party pose'),
-    ('sleepy',   'nodding off DRAMATICALLY, whole body tilting and about to topple over, one arm flopping loose, wobbly'),
-    ('sleeping', 'FLOPPED over completely sprawled out limp on the ground, tiny snore bubble, comically knocked out'),
+    ('sleepy',   'standing still and drowsy, head drooping down, both little arms hanging limp and relaxed at the sides, calm and about to fall asleep (NOT flailing)'),
+    ('sleeping', 'sitting down peacefully fast asleep, body relaxed and still, little arms resting quietly, calm sleeping posture (NOT flailing)'),
 ]
+CALM_STATES = {'sleepy', 'sleeping'}   # 安静状态: 第2帧只做轻微呼吸,不做大动作
+STATE_FILTER = set(sys.argv[2].split(',')) if len(sys.argv) > 2 else None
 
 def keyed(im):
     im = im.convert('RGBA'); px = im.load(); W, H = im.size
@@ -61,6 +63,8 @@ KEEP = ("Keep the IDENTICAL chibi humanoid body: same clothing/outfit, same colo
 
 done = 0
 for state, desc in STATES:
+    if STATE_FILTER and state not in STATE_FILTER:
+        continue
     def_ref = base_ref
     frames = []
     for fi in range(2):
@@ -69,6 +73,12 @@ for state, desc in STATES:
                 f"Show the body posture: {desc}. Pixel art, front-facing, centered, "
                 "entire background solid pure magenta (#FF00FF), no text.")
             ref = base_ref
+        elif state in CALM_STATES:
+            prompt = ("Reference image: animation frame 1 of THIS EXACT body. " + KEEP +
+                "Create animation frame 2 of a 2-frame loop: keep the SAME calm sleepy posture, change ONLY a "
+                "tiny subtle breathing motion (body rises/settles a little), stay relaxed and still. Pixel art, "
+                "centered, entire background solid pure magenta (#FF00FF), no text.")
+            ref = frame1_b64
         else:
             prompt = ("Reference image: animation frame 1 of THIS EXACT body. " + KEEP +
                 "Create animation frame 2 of a 2-frame loop: keep the same character and outfit but make a "
