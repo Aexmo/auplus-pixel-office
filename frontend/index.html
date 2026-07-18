@@ -3667,15 +3667,32 @@ function toggleBrokerPanel() {
         // 休息区互动槽(绑定用户摆的家具id; dy=脚点相对家具上移; under=家具盖住下半身)
         const BREAK_INTERACTIONS = [
             { furnId: 'cmrp7fpni460', dx: 0, dy: 6,   orient: 'back',  state: 'playing', under: true, occ: 0.5 },  // 街机长凳:背对玩(满意)
-            { furnId: 'cmrp6yk1q67',  dx: 0, dy: -22, orient: 'back',  state: 'sleeping', under: true, occ: 0.35 }, // 沙发:睡觉背面=慵懒窝沙发上(坐深进座位)
-            { furnId: 'cmrp6dsw7329', dx: 0, dy: 54,  orient: 'front', state: 'eating',  under: true, occ: 0.5 },  // 厨房柜台:正面吃(满意)
-            { furnId: 'cmrp6zetr628', dx: 0, dy: 54,  orient: 'front', state: 'eating',  under: true, occ: 0.5 },  // 吧台左→厨房效果
-            { furnId: 'cmrp6zoed925', dx: 0, dy: 54,  orient: 'front', state: 'eating',  under: true, occ: 0.5 },  // 吧台右→厨房效果
-            { furnId: 'cmrp6eem9458', dx: 0, dy: 40,  orient: 'front', state: 'eating',  under: true, occ: 0.5 },  // 酒柜→厨房效果
+            { furnId: 'cmrp6yk1q67',  dx: 0, dy: -12, orient: 'back',  state: 'sleeping', under: true, occ: 0.35 }, // 沙发:睡觉背面=慵懒窝沙发上(坐深进座位)
+            { furnId: 'cmrp6dsw7329', dx: 0, dy: -46, orient: 'front', state: 'eating', under: false }, // 厨房柜台:站台面前方地板正面吃
+            { furnId: 'cmrp6zetr628', dx: 0, dy: -46, orient: 'front', state: 'eating', under: false }, // 吧台左:站前方地板
+            { furnId: 'cmrp6zoed925', dx: 0, dy: -46, orient: 'front', state: 'eating', under: false }, // 吧台右:站前方地板
+            { furnId: 'cmrp6eem9458', dx: 0, dy: -70, orient: 'front', state: 'eating', under: false }, // 酒柜:站前方地板
         ];
         function furnItem(id) {
             const it = window.editorItems && window.editorItems[id];
             return (it && it.spr && it.spr.active && it.spr.visible) ? it : null;
+        }
+        // 通用约束: 角色的脚点必须在某个房间的地板内(避开墙体+房间间隔),否则夹到最近的合法地板
+        function clampToRoomFloor(x, y) {
+            const WALL_TOP = 60, WALL_SIDE = 18, WALL_BOT = 14;
+            const rooms = window.mapRooms || [];
+            if (!rooms.length) return { x, y };
+            let best = null, bestD = Infinity;
+            for (const r of rooms) {
+                const fx0 = r.x + WALL_SIDE, fx1 = r.x + r.w - WALL_SIDE;
+                const fy0 = r.y + WALL_TOP, fy1 = r.y + r.h - WALL_BOT;
+                if (fx1 <= fx0 || fy1 <= fy0) continue;
+                if (x >= fx0 && x <= fx1 && y >= fy0 && y <= fy1) return { x, y };  // 已在地板内
+                const cx = Math.max(fx0, Math.min(fx1, x)), cy = Math.max(fy0, Math.min(fy1, y));
+                const d = (cx - x) * (cx - x) + (cy - y) * (cy - y);
+                if (d < bestD) { bestD = d; best = { x: cx, y: cy }; }
+            }
+            return best || { x, y };
         }
         function availableBreakSlots() { return BREAK_INTERACTIONS.filter(s => furnItem(s.furnId)); }
         window.agentBreakSlots = {};
@@ -3698,12 +3715,13 @@ function toggleBrokerPanel() {
                 }
                 const slot = slots[window.agentBreakSlots[nm] % slots.length];
                 const fi = furnItem(slot.furnId);
-                return { x: Math.round(fi.spr.x + slot.dx), y: Math.round(fi.spr.y - slot.dy),
-                         orient: slot.orient, state: slot.state, still: !!slot.still,
+                const c = clampToRoomFloor(Math.round(fi.spr.x + slot.dx), Math.round(fi.spr.y - slot.dy));
+                return { x: c.x, y: c.y, orient: slot.orient, state: slot.state, still: !!slot.still,
                          depth: slot.under ? (fi.spr.depth - (slot.occ || 1)) : (fi.spr.depth + 1) };
             }
             const d = assignWorkstation(agent);
-            return { x: d.x, y: d.y, orient: 'front', state: 'idle', depth: d.atDesk ? (d.deskDepth - 1) : 2600 };
+            const c = clampToRoomFloor(d.x, d.y);
+            return { x: c.x, y: c.y, orient: 'front', state: 'idle', depth: d.atDesk ? (d.deskDepth - 1) : 2600 };
         }
         function renderGuestAgentsInScene() {
             if (!game) return;
